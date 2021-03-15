@@ -5,21 +5,21 @@ type UseCasesInterface interface {
 	Login(request LoginRequest) (*LoginResponse, error)
 	Logout(token Token) error
 
-	CreateDoc(token Token, doc Doc) (*Doc, error)
-	GetDoc(token Token, docId Id) (*Doc, error)
-	EditDoc(token Token, newDoc Doc) (*Doc, error)
-	DeleteDoc(token Token, docId Id) error
-	ChangeDocAccess(token Token, request DocAccessRequest) error
-	GetAllDocs(token Token) ([]Doc, error)
+	CreateDoc(userId Id, doc Doc) (*Doc, error)
+	GetDoc(userId Id, docId Id) (*Doc, error)
+	EditDoc(userId Id, newDoc Doc) (*Doc, error)
+	DeleteDoc(userId Id, docId Id) error
+	ChangeDocAccess(userId Id, request DocAccessRequest) error
+	GetAllDocs(userId Id) ([]Doc, error)
 
 	GetUserById(userId Id) (*User, error)
-	GetFriends(token Token) ([]User, error)
+	GetFriends(userId Id) ([]User, error)
 
-	CreateGroup(token Token, group Group) (*Group, error)
-	DeleteGroup(token Token, groupId Id) error
-	AddMember(token Token, groupId Id, newMemberId Id) error
-	RemoveMember(token Token, groupId Id, memberId Id) error
-	GetMembers(token Token, request GroupMembersChunkRequest) ([]User, error)
+	CreateGroup(userId Id, group Group) (*Group, error)
+	DeleteGroup(userId Id, groupId Id) error
+	AddMember(userId Id, groupId Id, newMemberId Id) error
+	RemoveMember(userId Id, groupId Id, memberId Id) error
+	GetMembers(userId Id, request GroupMembersChunkRequest) ([]User, error)
 }
 
 type Id string

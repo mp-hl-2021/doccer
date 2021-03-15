@@ -1,4 +1,4 @@
-module awesomeProject
+module doccer
 
 go 1.16
 

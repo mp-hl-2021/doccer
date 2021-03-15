@@ -51,10 +51,10 @@ func (s *SimpleUserInterface) Logout(token model.Token) error {
 	return nil
 }
 
-func (s *SimpleUserInterface) CreateDoc(token model.Token, doc model.Doc) (*model.Doc, error) {
+func (s *SimpleUserInterface) CreateDoc(userId model.Id, doc model.Doc) (*model.Doc, error) {
 	newDoc := model.Doc{
 		Id:       s.nextId(false),
-		AuthorId: model.Id(token),
+		AuthorId: model.Id(userId),
 		Text:     doc.Text,
 		Access:   doc.Access,
 	}
@@ -62,7 +62,7 @@ func (s *SimpleUserInterface) CreateDoc(token model.Token, doc model.Doc) (*mode
 	return &newDoc, nil
 }
 
-func (s *SimpleUserInterface) GetDoc(token model.Token, docId model.Id) (*model.Doc, error) {
+func (s *SimpleUserInterface) GetDoc(userId model.Id, docId model.Id) (*model.Doc, error) {
 	for _, d := range s.docs {
 		if d.Id == docId {
 			return &d, nil
@@ -71,7 +71,7 @@ func (s *SimpleUserInterface) GetDoc(token model.Token, docId model.Id) (*model.
 	return nil, errors.New("incorrect docId")
 }
 
-func (s *SimpleUserInterface) EditDoc(token model.Token, newDoc model.Doc) (*model.Doc, error) {
+func (s *SimpleUserInterface) EditDoc(userId model.Id, newDoc model.Doc) (*model.Doc, error) {
 	for _, d := range s.docs {
 		if d.Id == newDoc.Id {
 			d = newDoc
@@ -80,7 +80,7 @@ func (s *SimpleUserInterface) EditDoc(token model.Token, newDoc model.Doc) (*mod
 	return &newDoc, nil
 }
 
-func (s *SimpleUserInterface) DeleteDoc(token model.Token, docId model.Id) error {
+func (s *SimpleUserInterface) DeleteDoc(userId model.Id, docId model.Id) error {
 	for i, d := range s.docs {
 		if d.Id == docId {
 			s.docs[i] = s.docs[len(s.docs) - 1]
@@ -91,7 +91,7 @@ func (s *SimpleUserInterface) DeleteDoc(token model.Token, docId model.Id) error
 	return errors.New("incorrect docId")
 }
 
-func (s *SimpleUserInterface) ChangeDocAccess(token model.Token, request model.DocAccessRequest) error {
+func (s *SimpleUserInterface) ChangeDocAccess(userId model.Id, request model.DocAccessRequest) error {
 	for i, d := range s.docs {
 		if d.Id == request.DocId {
 			s.docs[i].Access = request.Access
@@ -101,7 +101,7 @@ func (s *SimpleUserInterface) ChangeDocAccess(token model.Token, request model.D
 	return errors.New("incorrect docId")
 }
 
-func (s *SimpleUserInterface) GetAllDocs(token model.Token) ([]model.Doc, error) {
+func (s *SimpleUserInterface) GetAllDocs(userId model.Id) ([]model.Doc, error) {
 	return s.docs, nil
 }
 
@@ -114,27 +114,27 @@ func (s *SimpleUserInterface) GetUserById(userId model.Id) (*model.User, error) 
 	return nil, errors.New("incorrect userId")
 }
 
-func (s *SimpleUserInterface) GetFriends(token model.Token) ([]model.User, error) {
+func (s *SimpleUserInterface) GetFriends(userId model.Id) ([]model.User, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (s *SimpleUserInterface) CreateGroup(token model.Token, group model.Group) (*model.Group, error) {
+func (s *SimpleUserInterface) CreateGroup(userId model.Id, group model.Group) (*model.Group, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (s *SimpleUserInterface) DeleteGroup(token model.Token, groupId model.Id) error {
+func (s *SimpleUserInterface) DeleteGroup(userId model.Idn, groupId model.Id) error {
 	return errors.New("not implemented")
 }
 
-func (s *SimpleUserInterface) AddMember(token model.Token, groupId model.Id, newMemberId model.Id) error {
+func (s *SimpleUserInterface) AddMember(userId model.Id, groupId model.Id, newMemberId model.Id) error {
 	return errors.New("not implemented")
 }
 
-func (s *SimpleUserInterface) RemoveMember(token model.Token, groupId model.Id, memberId model.Id) error {
+func (s *SimpleUserInterface) RemoveMember(userId model.Id, groupId model.Id, memberId model.Id) error {
 	return errors.New("not implemented")
 }
 
-func (s *SimpleUserInterface) GetMembers(token model.Token, request model.GroupMembersChunkRequest) ([]model.User, error) {
+func (s *SimpleUserInterface) GetMembers(userId model.Id, request model.GroupMembersChunkRequest) ([]model.User, error) {
 	return nil, errors.New("not implemented")
 }
 
