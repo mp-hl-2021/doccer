@@ -23,20 +23,25 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/login", a.login).Methods(http.MethodPost)
 	router.HandleFunc("/logout", a.logout).Methods(http.MethodPost)
 
-	router.HandleFunc("/docs/{doc_id}/get", a.getDoc).Methods(http.MethodGet)
-	router.HandleFunc("/docs/{doc_id}/create", a.createDoc).Methods(http.MethodPost)
-	router.HandleFunc("/docs/{doc_id}/delete", a.deleteDoc).Methods(http.MethodPost)
-	router.HandleFunc("/docs/{doc_id}/edit", a.editDoc).Methods(http.MethodPost)
-	router.HandleFunc("/docs/{doc_id}/change_doc_access", a.changeDocAccess).Methods(http.MethodPost)
+	router.HandleFunc("/docs/{doc_id}", a.getDoc).Methods(http.MethodGet)
+	router.HandleFunc("/docs/{doc_id}", a.createDoc).Methods(http.MethodPost)
+	router.HandleFunc("/docs/{doc_id}", a.deleteDoc).Methods(http.MethodDelete)
+	router.HandleFunc("/docs/{doc_id}", a.editDoc).Methods(http.MethodPut)
+
 	router.HandleFunc("/docs/get_all_docs", a.getAllDocs).Methods(http.MethodGet)
 
-	router.HandleFunc("/users/get_friends", a.getFriends).Methods(http.MethodGet)
+	router.HandleFunc("/users", a.editUser).Methods(http.MethodPut)
+	router.HandleFunc("/users", a.getUser).Methods(http.MethodGet)
 
-	router.HandleFunc("/users/groups/create", a.createGroup).Methods(http.MethodPost)
-	router.HandleFunc("/users/groups/delete", a.deleteGroup).Methods(http.MethodPost)
-	router.HandleFunc("/users/groups/add_member", a.addMember).Methods(http.MethodPost)
-	router.HandleFunc("/users/groups/remove_member", a.removeMember).Methods(http.MethodPost)
-	router.HandleFunc("/users/groups/get_members", a.getGroupMembers).Methods(http.MethodGet)
+	router.HandleFunc("/users/friends", a.getFriends).Methods(http.MethodGet)
+	router.HandleFunc("/users/friends", a.putFriend).Methods(http.MethodPut)
+
+	router.HandleFunc("/users/groups", a.createGroup).Methods(http.MethodPost)
+	router.HandleFunc("/users/groups", a.deleteGroup).Methods(http.MethodDelete)
+	router.HandleFunc("/users/groups", a.editGroup).Methods(http.MethodPut)
+
+	router.HandleFunc("/users/groups/{group_id}/members", a.putMember).Methods(http.MethodPut)
+	router.HandleFunc("/users/groups/{group_id}/members", a.getMembers).Methods(http.MethodGet)
 
 	return router
 }
@@ -116,7 +121,20 @@ func (a *Api) getFriends(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+func (a *Api) putFriend(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 func (a *Api) createGroup(w http.ResponseWriter, r *http.Request) {
+	var m model.Group
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (a *Api) editGroup(w http.ResponseWriter, r *http.Request) {
 	var m model.Group
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -130,17 +148,12 @@ func (a *Api) deleteGroup(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (a *Api) addMember(w http.ResponseWriter, r *http.Request) {
+func (a *Api) putMember(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	w.WriteHeader(http.StatusOK)
 }
 
-func (a *Api) removeMember(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-	w.WriteHeader(http.StatusOK)
-}
-
-func (a *Api) getGroupMembers(w http.ResponseWriter, r *http.Request) {
+func (a *Api) getMembers(w http.ResponseWriter, r *http.Request) {
 	var m model.GroupMembersChunkRequest
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)

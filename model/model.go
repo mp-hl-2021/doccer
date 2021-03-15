@@ -9,15 +9,21 @@ type UseCasesInterface interface {
 	GetDoc(userId Id, docId Id) (*Doc, error)
 	EditDoc(userId Id, newDoc Doc) (*Doc, error)
 	DeleteDoc(userId Id, docId Id) error
-	ChangeDocAccess(userId Id, request DocAccessRequest) error
+
 	GetAllDocs(userId Id) ([]Doc, error)
 
 	GetUserById(userId Id) (*User, error)
+	EditUser(userId Id, newUser User) (*User, error)
+
 	GetFriends(userId Id) ([]User, error)
+	AddFriend(userId Id, friendId Id) error
+	RemoveFriend(userId Id, friendId Id) error
 
 	CreateGroup(userId Id, group Group) (*Group, error)
 	DeleteGroup(userId Id, groupId Id) error
-	AddMember(userId Id, groupId Id, newMemberId Id) error
+	EditGroup(userId Id, groupId Id, newGroup Group) (*Group, error)
+
+	AddMember(userId Id, groupId Id, MemberId Id) error
 	RemoveMember(userId Id, groupId Id, memberId Id) error
 	GetMembers(userId Id, request GroupMembersChunkRequest) ([]User, error)
 }
