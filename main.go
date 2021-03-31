@@ -2,13 +2,15 @@ package main
 
 import (
 	"doccer/api"
+	"doccer/model"
 	"doccer/usecases"
 	"net/http"
 	"time"
 )
 
 func main() {
-	service := api.NewApi(&usecases.SimpleUserInterface{})
+	m := model.NewModelImpl(&usecases.SimpleStorage{}, []byte("abacaba"))
+	service := api.NewApi(&m)
 
 	server := http.Server{
 		Addr:         "localhost:8080",
