@@ -104,11 +104,11 @@ func (s *SimpleUserInterface) GetUserById(userId model.Id) (*model.User, error) 
 	return nil, errors.New("incorrect userId")
 }
 
-func (s *SimpleUserInterface) EditUser(userId model.Id, newUser User) (*model.User, error) {
+func (s *SimpleUserInterface) EditUser(userId model.Id, newUser model.User) (*model.User, error) {
 	for i, u := range s.users {
 		if u.Id == userId {
 			s.users[i] = newUser
-			return u, nil
+			return &u, nil
 		}
 	}
 	return nil, errors.New("incorrect userId")
@@ -118,12 +118,12 @@ func (s *SimpleUserInterface) GetFriends(userId model.Id) ([]model.User, error) 
 	return nil, errors.New("not implemented")
 }
 
-func (s *SimpleUserInterface) AddFriend(userId model.Id, friendId Id) error {
+func (s *SimpleUserInterface) AddFriend(userId model.Id, friendId model.Id) error {
 	return errors.New("not implemented")
 }
 
 
-func (s *SimpleUserInterface) RemoveFriend(userId model.Id, friendId Id) error {
+func (s *SimpleUserInterface) RemoveFriend(userId model.Id, friendId model.Id) error {
 	return errors.New("not implemented")
 }
 
@@ -136,7 +136,7 @@ func (s *SimpleUserInterface) DeleteGroup(userId model.Id, groupId model.Id) err
 	return errors.New("not implemented")
 }
 
-func (s *SimpleUserInterface) EditGroup(userId model.Id, groupId model.Id) (*model.Group, error) {
+func (s *SimpleUserInterface) EditGroup(userId model.Id, groupId model.Id, newGroup model.Group) (*model.Group, error) {
 	return nil, errors.New("not implemented")
 }
 

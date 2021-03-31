@@ -17,8 +17,7 @@ func NewApi(x model.UseCasesInterface) *Api {
 }
 
 func (a *Api) Router() http.Handler {
-	router := mux.newRouter
-
+	router := mux.NewRouter()
 	router.HandleFunc("/register", a.register).Methods(http.MethodPost)
 	router.HandleFunc("/login", a.login).Methods(http.MethodPost)
 	router.HandleFunc("/logout", a.logout).Methods(http.MethodPost)
@@ -28,7 +27,7 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/docs/{doc_id}", a.deleteDoc).Methods(http.MethodDelete)
 	router.HandleFunc("/docs/{doc_id}", a.editDoc).Methods(http.MethodPut)
 
-	router.HandleFunc("/docs/get_all_docs", a.getAllDocs).Methods(http.MethodGet)
+	router.HandleFunc("/docs", a.getAllDocs).Methods(http.MethodGet)
 
 	router.HandleFunc("/users", a.editUser).Methods(http.MethodPut)
 	router.HandleFunc("/users", a.getUser).Methods(http.MethodGet)
@@ -114,6 +113,14 @@ func (a *Api) changeDocAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) getAllDocs(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+func (a *Api) getUser(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+func (a *Api) editUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
