@@ -1,8 +1,9 @@
 package model
 
 type UseCasesInterface interface {
-	Register(request LoginRequest) (*LoginResponse, error)
+	Register(request LoginRequest) error
 	Login(request LoginRequest) (*LoginResponse, error)
+	Auth(tokenStr string) (*string, error)
 	Logout(token Token) error
 
 	CreateDoc(userId Id, doc Doc) (*Doc, error)
@@ -30,12 +31,14 @@ type UseCasesInterface interface {
 
 type Id string
 
-type Token string
 
 type User struct {
 	Id    Id `json:"id"`
 	Login string `json:"login"`
 }
+type Token string
+
+type Password []byte
 
 type Doc struct {
 	Id       Id `json:"id"`
