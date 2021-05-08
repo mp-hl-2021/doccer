@@ -94,68 +94,82 @@ func (s *ModelImpl) Logout(token Token) error {
 }
 
 func (s *ModelImpl) CreateDoc(userId Id, doc Doc) (*Doc, error) {
-	return nil, ErrNotImplemented
+	err := s.storage.AddDoc(userId, doc)
+	return &doc, err
 }
 
 func (s *ModelImpl) GetDoc(userId Id, docId Id) (*Doc, error) {
-	return nil, ErrNotImplemented
+	return s.storage.GetDoc(userId, docId)
 }
 
 func (s *ModelImpl) EditDoc(userId Id, newDoc Doc) (*Doc, error) {
-	return nil, ErrNotImplemented
+	return s.storage.EditDoc(userId, newDoc)
 }
 
 func (s *ModelImpl) DeleteDoc(userId Id, docId Id) error {
-	return ErrNotImplemented
+	return s.storage.DeleteDoc(userId, docId)
 }
 
 func (s *ModelImpl) GetAllDocs(userId Id) ([]Doc, error) {
-	return nil, ErrNotImplemented
+	return s.storage.GetAllDocs(userId)
 }
 
 func (s *ModelImpl) GetUserById(userId Id) (*User, error) {
-	return nil, ErrNotImplemented
+	return s.storage.GetUserById(userId)
 }
 
 func (s *ModelImpl) EditUser(userId Id, newUser User) (*User, error) {
-	return nil, ErrNotImplemented
+	return s.storage.EditUser(userId, newUser)
 }
 
 func (s *ModelImpl) GetFriends(userId Id) ([]User, error) {
-	return nil, ErrNotImplemented
+	return s.storage.GetFriends(userId)
 }
 
 func (s *ModelImpl) AddFriend(userId Id, friendId Id) error {
-	return ErrNotImplemented
+	return s.storage.AddFriend(userId, friendId)
 }
 
 
 func (s *ModelImpl) RemoveFriend(userId Id, friendId Id) error {
-	return ErrNotImplemented
+	return s.storage.RemoveFriend(userId, friendId)
 }
 
 func (s *ModelImpl) CreateGroup(userId Id, group Group) (*Group, error) {
-	return nil, ErrNotImplemented
+	return s.storage.CreateGroup(userId, group)
 }
 
 func (s *ModelImpl) DeleteGroup(userId Id, groupId Id) error {
-	return ErrNotImplemented
+	return s.storage.DeleteGroup(userId, groupId)
 }
 
 func (s *ModelImpl) EditGroup(userId Id, groupId Id, newGroup Group) (*Group, error) {
-	return nil, ErrNotImplemented
+	return s.storage.EditGroup(userId, groupId, newGroup)
 }
 
 func (s *ModelImpl) AddMember(userId Id, groupId Id, newMemberId Id) error {
-	return ErrNotImplemented
+	return s.storage.AddMember(userId, groupId, newMemberId)
 }
 
 func (s *ModelImpl) RemoveMember(userId Id, groupId Id, memberId Id) error {
-	return ErrNotImplemented
+	return s.storage.RemoveMember(userId, groupId, memberId)
 }
 
 func (s *ModelImpl) GetMembers(userId Id, request GroupMembersChunkRequest) ([]User, error) {
-	return nil, ErrNotImplemented
+	return s.storage.GetMembers(request)
+}
+
+func (s *ModelImpl) ChangeDocAccess(userId Id, request DocAccessRequest) (*Doc, error) {
+	doc, err := s.storage.GetDoc(userId, request.DocId)
+	if err != nil {
+		return nil, err
+	}
+	return s.storage.EditDoc(userId, Doc{
+		Id: doc.Id,
+		AuthorId: doc.AuthorId,
+		Access: request.Access,
+		Text: doc.Text,
+	})
 }
 
 
