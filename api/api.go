@@ -34,14 +34,16 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/users", a.auth(a.getUser, true)).Methods(http.MethodGet)
 
 	router.HandleFunc("/users/friends", a.auth(a.getFriends, true)).Methods(http.MethodGet)
-	router.HandleFunc("/users/friends", a.auth(a.putFriend, true)).Methods(http.MethodPut)
+	router.HandleFunc("/users/friends", a.auth(a.addFriend, true)).Methods(http.MethodPut)
+	router.HandleFunc("/users/friends", a.auth(a.removeFriend, true)).Methods(http.MethodDelete)
 
 	router.HandleFunc("/users/groups", a.auth(a.createGroup, true)).Methods(http.MethodPost)
 	router.HandleFunc("/users/groups", a.auth(a.deleteGroup, true)).Methods(http.MethodDelete)
 	router.HandleFunc("/users/groups", a.auth(a.editGroup, true)).Methods(http.MethodPut)
 
-	router.HandleFunc("/users/groups/{group_id}/members", a.auth(a.putMember, true)).Methods(http.MethodPut)
 	router.HandleFunc("/users/groups/{group_id}/members", a.auth(a.getMembers, true)).Methods(http.MethodGet)
+	router.HandleFunc("/users/groups/{group_id}/members", a.auth(a.removeMember, true)).Methods(http.MethodDelete)
+	router.HandleFunc("/users/groups/{group_id}/members", a.auth(a.addMember, true)).Methods(http.MethodPut)
 
 	return router
 }
@@ -125,39 +127,88 @@ func (a *Api) logout(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) getDoc(w http.ResponseWriter, r *http.Request) {
 	myId := r.Context().Value("myUserId")
-	id := mux.Vars(r)["id"]
+	id := model.Id(mux.Vars(r)["id"])
+	var newDoc *model.Doc
 	if myId != nil {
+		doc, err := a.useCases.GetDoc(model.Id(myId.(string)), id)
+		newDoc = doc
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		println("Get doc request with id", id, "by user", myId)
 	} else {
+		doc, err := a.useCases.GetDoc("-1", id)
+		newDoc = doc
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		println("Get doc request with id", id, "by unauthorized user")
 	}
+	respJson, err := json.Marshal(newDoc)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) createDoc(w http.ResponseWriter, r *http.Request) {
 	myId := r.Context().Value("myUserId")
-	if myId != nil {
-		println("Create doc request by user", myId)
-	} else {
-		println("Create doc request by unauthorized user")
-	}
 	var m model.Doc
+	var newDoc *model.Doc
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if myId != nil {
+		doc, err := a.useCases.CreateDoc(model.Id(myId.(string)), m)
+		newDoc = doc
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		println("Create doc request by user", myId)
+	} else {
+		doc, err := a.useCases.CreateDoc("-1", m)
+		newDoc = doc
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		println("Create doc request by unauthorized user")
+	}
+	respJson, err := json.Marshal(newDoc)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) deleteDoc(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
+	id := model.Id(mux.Vars(r)["id"])
 	myId := r.Context().Value("myUserId")
 	if myId == nil {
 		return
 	}
+	err := a.useCases.DeleteDoc(model.Id(myId.(string)), id)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	println("Delete doc request with id", id, "by user", myId)
-
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -167,13 +218,29 @@ func (a *Api) editDoc(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	println("Edit doc request with id", id, "by user", myId)
-
 	var m model.Doc
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	m = model.Doc{
+		Id: model.Id(id),
+		AuthorId: m.AuthorId,
+		Access: m.Access,
+		Text: m.Text,
+	}
+	doc, err := a.useCases.EditDoc(model.Id(myId.(string)), m)
+	respJson, err := json.Marshal(doc)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Edit doc request with id", id, "by user", myId)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -182,13 +249,28 @@ func (a *Api) changeDocAccess(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	println("Change docs access request by user", myId)
 
 	var m model.DocAccessRequest
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	doc, err := a.useCases.ChangeDocAccess(model.Id(myId.(string)), m)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	respJson, err := json.Marshal(doc)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Change docs access request by user", myId)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -197,9 +279,24 @@ func (a *Api) getAllDocs(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	println("Get all docs request by user", myId)
 
-	w.WriteHeader(http.StatusNotImplemented)
+	docs, err := a.useCases.GetAllDocs(model.Id(myId.(string)))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	respJson, err := json.Marshal(docs)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Get all docs request by user", myId)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) getUser(w http.ResponseWriter, r *http.Request) {
@@ -207,13 +304,56 @@ func (a *Api) getUser(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	println("Get user request by user", myId)
+	user, err := a.useCases.GetUserById(model.Id(myId.(string)))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	respJson, err := json.Marshal(user)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	w.WriteHeader(http.StatusNotImplemented)
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Get user request by user", myId)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) editUser(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+	myId := r.Context().Value("myUserId")
+	if myId == nil {
+		return
+	}
+	var m model.User
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	m = model.User{
+		Id: model.Id(myId.(string)),
+		Login: m.Login,
+	}
+	user, err := a.useCases.EditUser(model.Id(myId.(string)), m)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	respJson, err := json.Marshal(user)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Edit user", myId)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) getFriends(w http.ResponseWriter, r *http.Request) {
@@ -221,19 +361,52 @@ func (a *Api) getFriends(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	println("Get friends request by user", myId)
+	friends, err := a.useCases.GetFriends(model.Id(myId.(string)))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	respJson, err := json.Marshal(friends)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	w.WriteHeader(http.StatusNotImplemented)
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Get user friends by user", myId)
+	w.WriteHeader(http.StatusOK)
 }
 
-func (a *Api) putFriend(w http.ResponseWriter, r *http.Request) {
+func (a *Api) addFriend(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
 	myId := r.Context().Value("myUserId")
 	if myId == nil {
 		return
 	}
+	err := a.useCases.AddFriend(model.Id(myId.(string)), model.Id(id))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	println("Add friend request by user", myId)
+	w.WriteHeader(http.StatusOK)
+}
 
-	w.WriteHeader(http.StatusNotImplemented)
+func (a *Api) removeFriend(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+	myId := r.Context().Value("myUserId")
+	if myId == nil {
+		return
+	}
+	err := a.useCases.RemoveFriend(model.Id(myId.(string)), model.Id(id))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Add friend request by user", myId)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) createGroup(w http.ResponseWriter, r *http.Request) {
@@ -241,13 +414,27 @@ func (a *Api) createGroup(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	println("create group request by user", myId)
-
 	var m model.Group
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	group, err := a.useCases.CreateGroup(model.Id(myId.(string)), m)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	respJson, err := json.Marshal(group)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("create group request by user", myId)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -257,13 +444,33 @@ func (a *Api) editGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := mux.Vars(r)["id"]
-	println("Edit group request with group id ", id, "by user", myId)
 
 	var m model.Group
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	m = model.Group{
+		Id: model.Id(id),
+		Name: m.Name,
+		Creator: m.Creator,
+	}
+	group, err := a.useCases.EditGroup(model.Id(myId.(string)), model.Id(id), m)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	respJson, err := json.Marshal(group)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Edit group request with group id ", id, "by user", myId)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -273,19 +480,50 @@ func (a *Api) deleteGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := mux.Vars(r)["id"]
-
+	err := a.useCases.DeleteGroup(model.Id(myId.(string)), model.Id(id))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	println("Delete group request with group id ", id, "by user", myId)
 	w.WriteHeader(http.StatusOK)
 }
 
-func (a *Api) putMember(w http.ResponseWriter, r *http.Request) {
+func (a *Api) removeMember(w http.ResponseWriter, r *http.Request) {
 	myId := r.Context().Value("myUserId")
 	if myId == nil {
 		return
 	}
-	id := mux.Vars(r)["id"]
+	var m model.MemberRequest
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err := a.useCases.RemoveMember(model.Id(myId.(string)), m.GroupId, m.MemberId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Add member to group request with group id ", m.GroupId, "by user", myId)
+	w.WriteHeader(http.StatusOK)
+}
 
-	println("Add member to group request with group id ", id, "by user", myId)
+func (a *Api) addMember(w http.ResponseWriter, r *http.Request) {
+	myId := r.Context().Value("myUserId")
+	if myId == nil {
+		return
+	}
+	var m model.MemberRequest
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err := a.useCases.AddMember(model.Id(myId.(string)), m.GroupId, m.MemberId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Add member to group request with group id ", m.GroupId, "by user", myId)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -294,13 +532,26 @@ func (a *Api) getMembers(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	id := mux.Vars(r)["id"]
-	println("Get group members request with group id ", id, "by user", myId)
-
 	var m model.GroupMembersChunkRequest
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	members, err := a.useCases.GetMembers(model.Id(myId.(string)), m)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	respJson, err := json.Marshal(members)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(respJson); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	println("Get group members request with group id ", m.Id, "by user", myId)
 	w.WriteHeader(http.StatusOK)
 }

@@ -10,6 +10,7 @@ type UseCasesInterface interface {
 	GetDoc(userId Id, docId Id) (*Doc, error)
 	EditDoc(userId Id, newDoc Doc) (*Doc, error)
 	DeleteDoc(userId Id, docId Id) error
+	ChangeDocAccess(userId Id, request DocAccessRequest) (*Doc, error)
 
 	GetAllDocs(userId Id) ([]Doc, error)
 
@@ -48,13 +49,19 @@ type Doc struct {
 }
 
 type Group struct {
-	Id   Id `json:"id"`
-	Name string `json:"name"`
+	Id      Id `json:"id"`
+	Name    string `json:"name"`
+	Creator Id `json:"id"`
 }
 
 type DocAccessRequest struct {
 	DocId  Id `json:"id"`
 	Access string `json:"access"`
+}
+
+type MemberRequest struct {
+	GroupId  Id `json:"groupId"`
+	MemberId Id `json:"memberId"`
 }
 
 type GroupMembersChunkRequest struct {
