@@ -3,9 +3,14 @@ package api
 import (
 	"context"
 	"doccer/model"
+	"doccer/prom"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
+)
+
+const (
+	accountIdContextKey = "account_id"
 )
 
 type Api struct {
@@ -19,6 +24,10 @@ func NewApi(x model.UseCasesInterface) *Api {
 
 func (a *Api) Router() http.Handler {
 	router := mux.NewRouter()
+
+	router.Use(prom.Measurer())
+	router.Use(a.logger)
+
 	router.HandleFunc("/register", a.register).Methods(http.MethodPost)
 	router.HandleFunc("/login", a.login).Methods(http.MethodPost)
 	router.HandleFunc("/logout", a.auth(a.logout, true)).Methods(http.MethodPost)
