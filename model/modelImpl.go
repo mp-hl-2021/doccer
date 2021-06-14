@@ -122,19 +122,6 @@ func (s *ModelImpl) EditUser(userId Id, newUser User) (*User, error) {
 	return s.storage.EditUser(userId, newUser)
 }
 
-func (s *ModelImpl) GetFriends(userId Id) ([]User, error) {
-	return s.storage.GetFriends(userId)
-}
-
-func (s *ModelImpl) AddFriend(userId Id, friendId Id) error {
-	return s.storage.AddFriend(userId, friendId)
-}
-
-
-func (s *ModelImpl) RemoveFriend(userId Id, friendId Id) error {
-	return s.storage.RemoveFriend(userId, friendId)
-}
-
 func (s *ModelImpl) CreateGroup(userId Id, group Group) (*Group, error) {
 	return s.storage.CreateGroup(userId, group)
 }
@@ -160,16 +147,11 @@ func (s *ModelImpl) GetMembers(userId Id, request GroupMembersChunkRequest) ([]U
 }
 
 func (s *ModelImpl) ChangeDocAccess(userId Id, request DocAccessRequest) (*Doc, error) {
-	doc, err := s.storage.GetDoc(userId, request.DocId)
+	res, err := s.storage.EditDocAccess(userId, request.DocId, request)
 	if err != nil {
 		return nil, err
 	}
-	return s.storage.EditDoc(userId, Doc{
-		Id: doc.Id,
-		AuthorId: doc.AuthorId,
-		Access: request.Access,
-		Text: doc.Text,
-	})
+	return res, nil
 }
 
 

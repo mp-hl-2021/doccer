@@ -150,28 +150,84 @@ func (p * PostgresStorage) GetUserById(userId model.Id) (*model.User, error) {
 }
 
 func (p * PostgresStorage) CheckAccess(userId model.Id, docId model.Id) (string, error) {
-	return "absolute", nil
+	res := p.Dbc.QueryRow("select access from DocMemberAccess where doc_id = ? and user_id = ?", docId, userId)
+	userAccess := 0
+	err := res.Scan(&userAccess)
+	if err == nil {
+		return accessIntToStr(userAccess), nil
+	}
+
+	res2, err := p.Dbc.Query("select group_id, access from DocGroupAccess where doc_id = ?", docId, userId)
+	if err == nil {
+		for res2.Next() {
+			naccess := 0
+			groupId := ""
+			err = res2.Scan(&groupId, &naccess)
+			if err == nil {
+				members, err := p.GetMembers(model.GroupMembersChunkRequest{
+					Id:    model.Id(groupId),
+					Begin: 0,
+					Size:  0,
+				})
+
+				if err == nil {
+					contains := false
+					for _, member := range members {
+						if member.Id == userId {
+							contains = true
+						}
+					}
+
+					if contains && naccess > userAccess {
+						userAccess = naccess
+					}
+				}
+			}
+		}
+		return accessIntToStr(userAccess), nil
+	}
+
+
+	doc, err := p.getDoc(userId, docId, false)
+	if err != nil {
+		return "none", err
+	}
+	return doc.Access, nil
 }
 
 func (p * PostgresStorage) GetDoc(userId model.Id, docId model.Id) (*model.Doc, error) {
-	checkAccess, err := p.CheckAccess(userId, docId)
-	if err != nil || checkAccess == "none" {
-		return nil, model.ErrNoAccess
+	return p.getDoc(userId, docId, true)
+}
+
+func (p * PostgresStorage) getDoc(userId model.Id, docId model.Id, shouldCheck bool) (*model.Doc, error) {
+	var realAccess string = ""
+	if shouldCheck {
+		checkAccess, err := p.CheckAccess(userId, docId)
+		if err != nil || checkAccess == "none" {
+			return nil, model.ErrNoAccess
+		}
+		realAccess = checkAccess
 	}
 
-	res := p.Dbc.QueryRow("select u.text, u.creator_id from Users u where u.id = ?", userId)
+
+	res := p.Dbc.QueryRow("select u.text, u.creator_id, u.public_access_type from Users u where u.id = ?", userId)
 	text := ""
 	creatorId := ""
-	err = res.Scan(&text, &creatorId)
+	pub_access := ""
+	err := res.Scan(&text, &creatorId, &pub_access)
 	if err != nil {
 		return nil, model.ErrNotFound
+	}
+
+	if realAccess == "" {
+		realAccess = pub_access
 	}
 
 	doc := model.Doc{
 		Id:       docId,
 		AuthorId: model.Id(creatorId),
 		Text:     text,
-		Access:   checkAccess,
+		Access:   realAccess,
 	}
 	return &doc, nil
 }
@@ -203,18 +259,28 @@ func (p * PostgresStorage) EditDoc(userId model.Id, newDoc model.Doc) (*model.Do
 	if oldDoc.Access != newDoc.Access && checkAccess != "absolute" {
 		return nil, model.ErrNoAccess
 	}
-	public_acc_type := 0 // absolute
-	if newDoc.Access == "read" {
-		public_acc_type = 1
-	}
-	if newDoc.Access == "edit" {
-		public_acc_type = 2
-	}
-	if newDoc.Access == "private" {
-		public_acc_type = 3
-	}
-	_, _ = p.Dbc.Exec("update Docs set text = ?, public_access_type = ?", public_acc_type)
+	publicAccType := accessStrToInt(newDoc.Access)
+	_, _ = p.Dbc.Exec("update Docs set text = ?, public_access_type = ?", publicAccType)
 	return &newDoc, nil
+}
+
+func (p * PostgresStorage) EditDocAccess(userId model.Id, docId model.Id, editRequest model.DocAccessRequest) (*model.Doc, error) {
+	acc, err := p.CheckAccess(userId, docId)
+	if err != nil || acc != "absolute" {
+		return nil, model.ErrNoAccess
+	}
+	if editRequest.Type == 0 {
+		_, err := p.Dbc.Exec("insert into DocMemberRestriction values (?, ?, ?) on conflict(doc_id, member_id) update", docId, editRequest.ItemId, accessStrToInt(editRequest.Access))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		_, err := p.Dbc.Exec("insert into DocGroupRestriction values (?, ?, ?) on conflict(doc_id, member_id) update ", docId, editRequest.ItemId, accessStrToInt(editRequest.Access))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return p.GetDoc(userId, docId)
 }
 
 func (p * PostgresStorage) GetAllDocs(userId model.Id) ([]model.Doc, error) {
@@ -230,16 +296,7 @@ func (p * PostgresStorage) GetAllDocs(userId model.Id) ([]model.Doc, error) {
 		access := 0
 		_ = res.Scan(&id, &text, &access)
 
-		accessStr := "read"
-		if access == 0 {
-			accessStr = "absolute"
-		}
-		if access == 2 {
-			accessStr = "edit"
-		}
-		if access == 3 {
-			accessStr = "private"
-		}
+		accessStr := accessIntToStr(access)
 		_ = append(docs, model.Doc {
 			Id: model.Id(id),
 			AuthorId: userId,
@@ -259,18 +316,6 @@ func (p * PostgresStorage) DeleteDoc(userId model.Id, docId model.Id) error {
 	if err != nil {
 		return model.ErrNotFound
 	}
-	return nil
-}
-
-func (p * PostgresStorage) GetFriends(userId model.Id) ([]model.User, error) {
-	return nil, nil
-}
-
-func (p * PostgresStorage) AddFriend(userId model.Id, friendId model.Id) error {
-	return nil
-}
-
-func (p * PostgresStorage) RemoveFriend(userId model.Id, friendId model.Id) error {
 	return nil
 }
 
@@ -298,6 +343,12 @@ func (p * PostgresStorage) DeleteGroup(userId model.Id, groupId model.Id) error 
 }
 
 func (p * PostgresStorage) EditGroup(userId model.Id, groupId model.Id, newGroup model.Group) (*model.Group, error) {
+	oldGroup, err := p.GetGroupById(groupId)
+	if err != nil || userId != oldGroup.Id  {
+		return nil, model.ErrNoAccess
+	}
+
+	_, err = p.Dbc.Exec("update Groups1 set name = ? where id = ?", newGroup.Name, groupId)
 	return &newGroup, nil
 }
 
@@ -377,4 +428,32 @@ func (p * PostgresStorage) GetMembers(request model.GroupMembersChunkRequest) ([
 		_ = append(users, *user)
 	}
 	return users, nil
+}
+
+func accessStrToInt(accessStr string) int {
+	accessCode := 1 //read
+	if accessStr == "absolute" {
+		accessCode = 3
+	}
+	if accessStr == "edit" {
+		accessCode = 2
+	}
+	if accessStr == "none" {
+		accessCode = 0
+	}
+	return accessCode
+}
+
+func accessIntToStr(accessCode int) string {
+	accessStr := "read"
+	if accessCode == 3 {
+		accessStr = "absolute"
+	}
+	if accessCode == 1 {
+		accessStr = "edit"
+	}
+	if accessCode == 0 {
+		accessStr = "none"
+	}
+	return accessStr
 }

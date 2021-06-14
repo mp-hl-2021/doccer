@@ -33,10 +33,6 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/users", a.auth(a.editUser, true)).Methods(http.MethodPut)
 	router.HandleFunc("/users", a.auth(a.getUser, true)).Methods(http.MethodGet)
 
-	router.HandleFunc("/users/friends", a.auth(a.getFriends, true)).Methods(http.MethodGet)
-	router.HandleFunc("/users/friends", a.auth(a.addFriend, true)).Methods(http.MethodPut)
-	router.HandleFunc("/users/friends", a.auth(a.removeFriend, true)).Methods(http.MethodDelete)
-
 	router.HandleFunc("/users/groups", a.auth(a.createGroup, true)).Methods(http.MethodPost)
 	router.HandleFunc("/users/groups", a.auth(a.deleteGroup, true)).Methods(http.MethodDelete)
 	router.HandleFunc("/users/groups", a.auth(a.editGroup, true)).Methods(http.MethodPut)
@@ -353,59 +349,6 @@ func (a *Api) editUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Edit user", myId)
-	w.WriteHeader(http.StatusOK)
-}
-
-func (a *Api) getFriends(w http.ResponseWriter, r *http.Request) {
-	myId := r.Context().Value("myUserId")
-	if myId == nil {
-		return
-	}
-	friends, err := a.useCases.GetFriends(model.Id(myId.(string)))
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-	respJson, err := json.Marshal(friends)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if _, err := w.Write(respJson); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	println("Get user friends by user", myId)
-	w.WriteHeader(http.StatusOK)
-}
-
-func (a *Api) addFriend(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-	myId := r.Context().Value("myUserId")
-	if myId == nil {
-		return
-	}
-	err := a.useCases.AddFriend(model.Id(myId.(string)), model.Id(id))
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	println("Add friend request by user", myId)
-	w.WriteHeader(http.StatusOK)
-}
-
-func (a *Api) removeFriend(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-	myId := r.Context().Value("myUserId")
-	if myId == nil {
-		return
-	}
-	err := a.useCases.RemoveFriend(model.Id(myId.(string)), model.Id(id))
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	println("Add friend request by user", myId)
 	w.WriteHeader(http.StatusOK)
 }
 
