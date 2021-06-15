@@ -1,7 +1,7 @@
 package model
 
 type UseCasesInterface interface {
-	Register(request LoginRequest) error
+	Register(request LoginRequest) (*User, error)
 	Login(request LoginRequest) (*LoginResponse, error)
 	Auth(tokenStr string) (*string, error)
 	Logout(token Token) error

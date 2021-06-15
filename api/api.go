@@ -24,9 +24,11 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/logout", a.auth(a.logout, true)).Methods(http.MethodPost)
 
 	router.HandleFunc("/docs/{doc_id}", a.auth(a.getDoc, false)).Methods(http.MethodGet)
-	router.HandleFunc("/docs/{doc_id}", a.auth(a.createDoc, false)).Methods(http.MethodPost)
+	router.HandleFunc("/docs", a.auth(a.createDoc, false)).Methods(http.MethodPost)
 	router.HandleFunc("/docs/{doc_id}", a.auth(a.deleteDoc, true)).Methods(http.MethodDelete)
 	router.HandleFunc("/docs/{doc_id}", a.auth(a.editDoc, true)).Methods(http.MethodPut)
+
+	router.HandleFunc("/docs/{doc_id}/access", a.auth(a.changeDocAccess, true)).Methods(http.MethodPost)
 
 	router.HandleFunc("/docs", a.auth(a.getAllDocs, true)).Methods(http.MethodGet)
 
@@ -50,12 +52,17 @@ func (a *Api) register(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	err := a.useCases.Register(m)
+	user, err := a.useCases.Register(m)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		if err == model.ErrAlreadyExists {
 			_, _ = w.Write([]byte("login already exists"))
 		}
+		return
+	}
+	respJson, err := json.Marshal(user)
+	_, err = w.Write(respJson)
+	if err != nil {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -107,7 +114,7 @@ func (a *Api) auth(f func (w http.ResponseWriter, r *http.Request), isRequired b
 			}
 			return
 		}
-		ctx := context.WithValue(r.Context(), "myUserId", userId)
+		ctx := context.WithValue(r.Context(), "myUserId", *userId)
 		f(w, r.WithContext(ctx))
 	}
 }
@@ -123,7 +130,7 @@ func (a *Api) logout(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) getDoc(w http.ResponseWriter, r *http.Request) {
 	myId := r.Context().Value("myUserId")
-	id := model.Id(mux.Vars(r)["id"])
+	id := model.Id(mux.Vars(r)["doc_id"])
 	var newDoc *model.Doc
 	if myId != nil {
 		doc, err := a.useCases.GetDoc(model.Id(myId.(string)), id)

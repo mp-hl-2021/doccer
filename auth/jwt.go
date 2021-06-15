@@ -10,6 +10,11 @@ type JwtHandler struct {
 	ExpirationTime time.Duration
 }
 
+type UserClaims struct {
+	UserId    string
+	jwt.StandardClaims
+}
+
 func NewJwtHandler(secret []byte, duration time.Duration) JwtHandler {
 	return JwtHandler{
 		secret: secret,
@@ -22,8 +27,8 @@ func (jh *JwtHandler) GetNewToken(claims jwt.Claims) (string, error) {
 	return token.SignedString(jh.secret)
 }
 
-func (jh *JwtHandler) ParseClaims(tokenString string, emptyClaims jwt.Claims) (*jwt.Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, emptyClaims, func(token *jwt.Token) (interface{}, error) {
+func (jh *JwtHandler) ParseClaims(tokenString string, emptyClaims UserClaims) (*jwt.Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &emptyClaims, func(token *jwt.Token) (interface{}, error) {
 		return jh.secret, nil
 	})
 	if err != nil {
