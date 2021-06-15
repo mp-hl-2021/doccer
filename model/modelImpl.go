@@ -11,11 +11,6 @@ type ModelImpl struct {
 	jwtHandler auth.JwtHandler
 }
 
-type UserClaims struct {
-	UserId    Id
-	jwt.StandardClaims
-}
-
 func NewModelImpl(storage Storage, secret []byte) ModelImpl {
 	return ModelImpl{
 		storage: storage,
@@ -30,25 +25,25 @@ func (s *ModelImpl) nextId(isUserId bool) Id {
 	return s.storage.GenerateNewDocId()
 }
 
-func (s *ModelImpl) Register(request LoginRequest) error {
+func (s *ModelImpl) Register(request LoginRequest) (*User, error) {
 	user := User{
 		Id:    s.nextId(true),
 		Login: request.Login,
 	}
 
 	if s.storage.CheckLoginExists(user.Login) {
-		return ErrAlreadyExists
+		return nil, ErrAlreadyExists
 	}
 
 	encryptedPassword, err := auth.EncodeStr(request.Password)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = s.storage.AddUser(user, encryptedPassword)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return &user, nil
 }
 
 func (s *ModelImpl) Login(request LoginRequest) (*LoginResponse, error) {
@@ -66,9 +61,9 @@ func (s *ModelImpl) Login(request LoginRequest) (*LoginResponse, error) {
 		return nil, ErrWrongPassword
 	}
 
-	claims := UserClaims{
-		user.Id,
-		jwt.StandardClaims{
+	claims := auth.UserClaims{
+		UserId: string(user.Id),
+		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(s.jwtHandler.ExpirationTime).Unix(),
 		},
 	}
@@ -81,12 +76,12 @@ func (s *ModelImpl) Login(request LoginRequest) (*LoginResponse, error) {
 }
 
 func (s *ModelImpl) Auth(tokenStr string) (*string, error) {
-	claims, err := s.jwtHandler.ParseClaims(tokenStr, UserClaims{})
+	claims, err := s.jwtHandler.ParseClaims(tokenStr, auth.UserClaims{})
 	if err != nil {
 		return nil, err
 	}
-	userClaims := (*claims).(*UserClaims)
-	return &userClaims.Id, nil
+	userClaims := (*claims).(*auth.UserClaims)
+	return &userClaims.UserId, nil
 }
 
 func (s *ModelImpl) Logout(token Token) error {
@@ -94,7 +89,11 @@ func (s *ModelImpl) Logout(token Token) error {
 }
 
 func (s *ModelImpl) CreateDoc(userId Id, doc Doc) (*Doc, error) {
-	err := s.storage.AddDoc(userId, doc)
+	docId, err := s.storage.AddDoc(userId, doc)
+	if err != nil {
+		return nil, err
+	}
+	doc.Id = *docId
 	return &doc, err
 }
 
@@ -122,19 +121,6 @@ func (s *ModelImpl) EditUser(userId Id, newUser User) (*User, error) {
 	return s.storage.EditUser(userId, newUser)
 }
 
-func (s *ModelImpl) GetFriends(userId Id) ([]User, error) {
-	return s.storage.GetFriends(userId)
-}
-
-func (s *ModelImpl) AddFriend(userId Id, friendId Id) error {
-	return s.storage.AddFriend(userId, friendId)
-}
-
-
-func (s *ModelImpl) RemoveFriend(userId Id, friendId Id) error {
-	return s.storage.RemoveFriend(userId, friendId)
-}
-
 func (s *ModelImpl) CreateGroup(userId Id, group Group) (*Group, error) {
 	return s.storage.CreateGroup(userId, group)
 }
@@ -160,16 +146,11 @@ func (s *ModelImpl) GetMembers(userId Id, request GroupMembersChunkRequest) ([]U
 }
 
 func (s *ModelImpl) ChangeDocAccess(userId Id, request DocAccessRequest) (*Doc, error) {
-	doc, err := s.storage.GetDoc(userId, request.DocId)
+	res, err := s.storage.EditDocAccess(userId, request.DocId, request)
 	if err != nil {
 		return nil, err
 	}
-	return s.storage.EditDoc(userId, Doc{
-		Id: doc.Id,
-		AuthorId: doc.AuthorId,
-		Access: request.Access,
-		Text: doc.Text,
-	})
+	return res, nil
 }
 
 

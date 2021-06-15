@@ -11,14 +11,11 @@ type Storage interface {
 
 	CheckAccess(userId Id, docId Id) (string, error)
 	GetDoc(userId Id, docId Id) (*Doc, error)
-	AddDoc(userId Id, newDoc Doc) error
+	AddDoc(userId Id, newDoc Doc) (*Id, error)
 	EditDoc(userId Id, newDoc Doc) (*Doc, error)
+	EditDocAccess(userId Id, docId Id, request DocAccessRequest) (*Doc, error)
 	DeleteDoc(userId Id, docId Id) error
 	GetAllDocs(userId Id) ([]Doc, error)
-
-	GetFriends(userId Id) ([]User, error)
-	AddFriend(userId Id, friendId Id) error
-	RemoveFriend(userId Id, friendId Id) error
 
 	CreateGroup(userId Id, group Group) (*Group, error)
 	DeleteGroup(userId Id, groupId Id) error

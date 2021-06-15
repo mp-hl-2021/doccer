@@ -1,7 +1,7 @@
 package model
 
 type UseCasesInterface interface {
-	Register(request LoginRequest) error
+	Register(request LoginRequest) (*User, error)
 	Login(request LoginRequest) (*LoginResponse, error)
 	Auth(tokenStr string) (*string, error)
 	Logout(token Token) error
@@ -16,10 +16,6 @@ type UseCasesInterface interface {
 
 	GetUserById(userId Id) (*User, error)
 	EditUser(userId Id, newUser User) (*User, error)
-
-	GetFriends(userId Id) ([]User, error)
-	AddFriend(userId Id, friendId Id) error
-	RemoveFriend(userId Id, friendId Id) error
 
 	CreateGroup(userId Id, group Group) (*Group, error)
 	DeleteGroup(userId Id, groupId Id) error
@@ -51,11 +47,13 @@ type Doc struct {
 type Group struct {
 	Id      Id `json:"id"`
 	Name    string `json:"name"`
-	Creator Id `json:"id"`
+	Creator Id `json:"creator_id"`
 }
 
 type DocAccessRequest struct {
 	DocId  Id `json:"id"`
+	Type int `json:"type"`
+	ItemId Id `json:"itemId"`
 	Access string `json:"access"`
 }
 

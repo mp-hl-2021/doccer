@@ -22,6 +22,9 @@ func main() {
 		Dbc: db,
 	}
 
+	//delete all data
+	storage.ClearAllTables()
+
 	m := model.NewModelImpl(&storage, []byte("abacaba"))
 	service := api.NewApi(&m)
 
@@ -31,6 +34,7 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 		Handler:      service.Router(),
 	}
+	println("Starting server")
 	err = server.ListenAndServe()
 	if err != nil {
 		panic(err)
