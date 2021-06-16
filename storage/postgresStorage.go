@@ -6,9 +6,13 @@ import (
 	"doccer/model"
 	_ "github.com/lib/pq"
 	"strconv"
+	"sync"
 )
 
 type PostgresStorage struct {
+	mu1 sync.Mutex
+	mu2 sync.Mutex
+	mu3 sync.Mutex
 	Dbc *sql.DB
 }
 
@@ -18,6 +22,7 @@ func (p *PostgresStorage) ClearAllTables() {
 }
 
 func (p *PostgresStorage) GenerateNewUserId() model.Id {
+	p.mu1.Lock()
 	ctx := context.Background()
 	tx, _ := p.Dbc.BeginTx(ctx, nil)
 
@@ -32,10 +37,12 @@ func (p *PostgresStorage) GenerateNewUserId() model.Id {
 
 	_ = tx.Commit()
 
+	p.mu1.Unlock()
 	return model.Id(id)
 }
 
 func (p *PostgresStorage) GenerateNewDocId() model.Id {
+	p.mu2.Lock()
 	ctx := context.Background()
 	tx, _ := p.Dbc.BeginTx(ctx, nil)
 
@@ -50,10 +57,12 @@ func (p *PostgresStorage) GenerateNewDocId() model.Id {
 
 	_ = tx.Commit()
 
+	p.mu2.Unlock()
 	return model.Id(id)
 }
 
 func (p *PostgresStorage) GenerateNewGroupId() model.Id {
+	p.mu3.Lock()
 	ctx := context.Background()
 	tx, _ := p.Dbc.BeginTx(ctx, nil)
 
@@ -68,6 +77,7 @@ func (p *PostgresStorage) GenerateNewGroupId() model.Id {
 
 	_ = tx.Commit()
 
+	p.mu3.Unlock()
 	return model.Id(id)
 }
 
