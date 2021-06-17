@@ -72,6 +72,7 @@ func (a *Api) register(w http.ResponseWriter, r *http.Request) {
 	respJson, err := json.Marshal(user)
 	_, err = w.Write(respJson)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
