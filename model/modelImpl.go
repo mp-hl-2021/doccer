@@ -23,8 +23,8 @@ func NewModelImpl(
 	linterWorkersCnt int,
 	) ModelImpl {
 
-	processChannel := make(chan data.Doc)
-	resChannel := make(chan data.Doc)
+	processChannel := make(chan data.Doc, linterWorkersCnt * 2)
+	resChannel := make(chan data.Doc, saveWorkersCnt * 2)
 
 	res := ModelImpl{
 		storage: storage,
