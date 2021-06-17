@@ -66,7 +66,6 @@ func (a *Api) register(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) login(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +92,6 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) auth(f func (w http.ResponseWriter, r *http.Request), isRequired bool) func (w http.ResponseWriter, r *http.Request) {
@@ -160,7 +158,6 @@ func (a *Api) getDoc(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) createDoc(w http.ResponseWriter, r *http.Request) {
@@ -198,7 +195,6 @@ func (a *Api) createDoc(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) deleteDoc(w http.ResponseWriter, r *http.Request) {
@@ -213,7 +209,6 @@ func (a *Api) deleteDoc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Delete doc request with id", id, "by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) editDoc(w http.ResponseWriter, r *http.Request) {
@@ -245,7 +240,6 @@ func (a *Api) editDoc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Edit doc request with id", id, "by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) changeDocAccess(w http.ResponseWriter, r *http.Request) {
@@ -275,7 +269,6 @@ func (a *Api) changeDocAccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Change docs access request by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) getAllDocs(w http.ResponseWriter, r *http.Request) {
@@ -300,7 +293,6 @@ func (a *Api) getAllDocs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Get all docs request by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) getUser(w http.ResponseWriter, r *http.Request) {
@@ -324,7 +316,6 @@ func (a *Api) getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Get user request by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) editUser(w http.ResponseWriter, r *http.Request) {
@@ -357,7 +348,6 @@ func (a *Api) editUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Edit user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) createGroup(w http.ResponseWriter, r *http.Request) {
@@ -386,7 +376,6 @@ func (a *Api) createGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("create group request by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) editGroup(w http.ResponseWriter, r *http.Request) {
@@ -422,7 +411,6 @@ func (a *Api) editGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Edit group request with group id ", id, "by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) deleteGroup(w http.ResponseWriter, r *http.Request) {
@@ -437,7 +425,6 @@ func (a *Api) deleteGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Delete group request with group id ", id, "by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) removeMember(w http.ResponseWriter, r *http.Request) {
@@ -456,7 +443,6 @@ func (a *Api) removeMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Add member to group request with group id ", m.GroupId, "by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) addMember(w http.ResponseWriter, r *http.Request) {
@@ -475,7 +461,6 @@ func (a *Api) addMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Add member to group request with group id ", m.GroupId, "by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) getMembers(w http.ResponseWriter, r *http.Request) {
@@ -504,5 +489,4 @@ func (a *Api) getMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Get group members request with group id ", m.Id, "by user", myId)
-	w.WriteHeader(http.StatusOK)
 }
