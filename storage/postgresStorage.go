@@ -249,8 +249,8 @@ func (p * PostgresStorage) AddDoc(doc data.Doc) (*data.Id, error) {
 
 func (p * PostgresStorage) EditDoc(newDoc data.Doc) (*data.Doc, error) {
 	publicAccType := accessStrToInt(newDoc.Access)
-	_, _ = p.Dbc.Exec("update Docs set text = $1, public_access_type = $2, lang = $3, lstatus = $4",
-		newDoc.Text, publicAccType, newDoc.Lang, newDoc.LinterStatus)
+	_, _ = p.Dbc.Exec("update Docs set text = $1, public_access_type = $2, lang = $3, lstatus = $4 where id = $5",
+		newDoc.Text, publicAccType, newDoc.Lang, newDoc.LinterStatus, newDoc.Id)
 	return &newDoc, nil
 }
 

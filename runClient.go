@@ -2,6 +2,7 @@ package main
 
 import (
 	client2 "doccer/client"
+	"time"
 )
 
 func main() {
@@ -36,4 +37,23 @@ func main() {
 
 	doc, _ = client.GetDoc(docId, jwt3)
 	println(doc.Text, doc.Lang, doc.LinterStatus)
+
+
+	code := `
+package test
+
+func F() {
+    println(5)
+}
+
+func main() {
+    F()
+}
+`
+	codeId, _ := client.CreateDoc(code, "go", "read", jwt2)
+	time.Sleep(1 * time.Second)
+	doc, _ = client.GetDoc(codeId, jwt1)
+	println(doc.Text)
+	println("Lang: ", doc.Lang)
+	println("Inspection: ", doc.LinterStatus)
 }

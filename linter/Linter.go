@@ -5,6 +5,5 @@ type Linter interface {
 }
 
 type InspectionResult struct {
-	codeCorrect bool
 	comments string
 }

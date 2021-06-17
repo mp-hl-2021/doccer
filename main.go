@@ -23,11 +23,12 @@ func main() {
 		Dbc: db,
 	}
 	//delete all data
-	storage.ClearAllTables()
+	//storage.ClearAllTables()
 
 	linter := linter2.NewGeneralLinter()
 
 	linter.RegisterNewLinter("Text", &linter2.StubLinter{})
+	linter.RegisterNewLinter("go", &linter2.GoLinter{})
 
 	m := model.NewModelImpl(&storage, []byte("abacaba"), linter, 10, 10)
 

@@ -58,8 +58,8 @@ func (c* Client) Login(login string, password string) (string, error) {
 // Returns docId
 func (c* Client) CreateDoc(text string, lang string, defaultAccess string, token string) (string, error) {
 	reqJson := bytes.NewBuffer([]byte(
-		fmt.Sprintf(`{"id":"-1", "authorId":"-1", "text":"%s", "access":"%s", "lang":"%s", "lstatus":"%s"}`,
-			text, defaultAccess, lang, "")))
+		fmt.Sprintf(`{"id":"-1", "authorId":"-1", "text":%s, "access":"%s", "lang":"%s", "lstatus":"%s"}`,
+			c.escapeJson(text), defaultAccess, lang, "")))
 
 	req, _ := http.NewRequest("POST", c.url + "/docs", reqJson)
 
@@ -136,4 +136,9 @@ func (c* Client) parseField(responseBody []byte, fieldName string) (string, erro
 	var result map[string]interface{}
 	_ = json.Unmarshal([]byte(bodyStr), &result)
 	return result[fieldName].(string), nil
+}
+
+func (c* Client) escapeJson(jsonString string) string {
+	res, _ := json.Marshal(jsonString)
+	return string(res)
 }
