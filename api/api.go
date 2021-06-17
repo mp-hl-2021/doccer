@@ -4,7 +4,7 @@ import (
 	"context"
 	"doccer/model"
 	"encoding/json"
-	"github.com/gorilla/mux"
+	mux "github.com/gorilla/mux"
 	"net/http"
 )
 
@@ -406,7 +406,7 @@ func (a *Api) editGroup(w http.ResponseWriter, r *http.Request) {
 		Name: m.Name,
 		Creator: m.Creator,
 	}
-	group, err := a.useCases.EditGroup(model.Id(myId.(string)), model.Id(id), m)
+	group, err := a.useCases.EditGroup(model.Id(myId.(string)), m)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

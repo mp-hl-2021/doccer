@@ -19,7 +19,7 @@ type UseCasesInterface interface {
 
 	CreateGroup(userId Id, group Group) (*Group, error)
 	DeleteGroup(userId Id, groupId Id) error
-	EditGroup(userId Id, groupId Id, newGroup Group) (*Group, error)
+	EditGroup(userId Id, newGroup Group) (*Group, error)
 
 	AddMember(userId Id, groupId Id, MemberId Id) error
 	RemoveMember(userId Id, groupId Id, memberId Id) error
