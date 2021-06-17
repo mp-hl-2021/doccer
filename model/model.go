@@ -42,6 +42,8 @@ type Doc struct {
 	AuthorId Id `json:"authorId"`
 	Text     string `json:"text"`
 	Access   string `json:"access"`
+	Lang     string `json:"lang"`
+	LinterStatus string `json:"lstatus"`
 }
 
 type Group struct {

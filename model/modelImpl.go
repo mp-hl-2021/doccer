@@ -94,6 +94,8 @@ func (s *ModelImpl) CreateDoc(userId Id, doc Doc) (*Doc, error) {
 		AuthorId: userId,
 		Text:     doc.Text,
 		Access:   doc.Access,
+		Lang: doc.Lang,
+		LinterStatus: "No inspection",
 	}
 	docId, err := s.storage.AddDoc(doc)
 	if err != nil {
@@ -123,13 +125,8 @@ func (s *ModelImpl) getDoc(userId Id, docId Id, shouldCheck bool) (*Doc, error) 
 		return nil, err
 	}
 
-	doc := Doc{
-		Id:       docId,
-		AuthorId: res.AuthorId,
-		Text:     res.Text,
-		Access:   realAccess,
-	}
-	return &doc, nil
+	res.Access = realAccess
+	return res, nil
 }
 
 func (s *ModelImpl) EditDoc(userId Id, newDoc Doc) (*Doc, error) {

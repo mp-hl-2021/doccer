@@ -168,6 +168,10 @@ func (p * PostgresStorage) CheckAccess(userId model.Id, docId model.Id) (string,
 		return "none", err
 	}
 
+	if userId == "-1" {
+		return doc.Access, nil
+	}
+
 	if doc.AuthorId == userId {
 		return "absolute", nil
 	}
@@ -213,11 +217,13 @@ func (p * PostgresStorage) CheckAccess(userId model.Id, docId model.Id) (string,
 }
 
 func (p *PostgresStorage) GetDoc(docId model.Id) (*model.Doc, error) {
-	res := p.Dbc.QueryRow("select d.text, d.creator_id, d.public_access_type from Docs d where d.id = $1", docId)
+	res := p.Dbc.QueryRow("select d.text, d.creator_id, d.public_access_type, d.lang, d.lstatus from Docs d where d.id = $1", docId)
 	text := ""
 	creatorId := ""
 	pubAccess := 0
-	err := res.Scan(&text, &creatorId, &pubAccess)
+	lang := ""
+	lstatus := ""
+	err := res.Scan(&text, &creatorId, &pubAccess, &lang, &lstatus)
 	if err != nil {
 		return nil, model.ErrNotFound
 	}
@@ -226,11 +232,14 @@ func (p *PostgresStorage) GetDoc(docId model.Id) (*model.Doc, error) {
 		AuthorId: model.Id(creatorId),
 		Text: text,
 		Access: accessIntToStr(pubAccess),
+		Lang: lang,
+		LinterStatus: lstatus,
 	}, nil
 }
 
 func (p * PostgresStorage) AddDoc(doc model.Doc) (*model.Id, error) {
-	_, err := p.Dbc.Exec("insert into Docs values ($1, $2, $3, $4)", doc.Id, doc.AuthorId, doc.Text, accessStrToInt(doc.Access))
+	_, err := p.Dbc.Exec("insert into Docs values ($1, $2, $3, $4, $5, $6)",
+		doc.Id, doc.AuthorId, doc.Text, accessStrToInt(doc.Access), doc.Lang, doc.LinterStatus)
 	if err != nil {
 		return nil, model.ErrAlreadyExists
 	}
@@ -239,7 +248,8 @@ func (p * PostgresStorage) AddDoc(doc model.Doc) (*model.Id, error) {
 
 func (p * PostgresStorage) EditDoc(newDoc model.Doc) (*model.Doc, error) {
 	publicAccType := accessStrToInt(newDoc.Access)
-	_, _ = p.Dbc.Exec("update Docs set text = $1, public_access_type = $2", newDoc.Text, publicAccType)
+	_, _ = p.Dbc.Exec("update Docs set text = $1, public_access_type = $2, lang = $3, lstatus = $4",
+		newDoc.Text, publicAccType, newDoc.Lang, newDoc.LinterStatus)
 	return &newDoc, nil
 }
 
@@ -259,7 +269,7 @@ func (p * PostgresStorage) EditDocAccess(docId model.Id, editRequest model.DocAc
 }
 
 func (p * PostgresStorage) GetAllDocs(userId model.Id) ([]model.Doc, error) {
-	res, err := p.Dbc.Query("select d.id, d.text, d.access from Docs d where d.creator_id = $1", userId)
+	res, err := p.Dbc.Query("select d.id, d.text, d.access, d.lang, d.lstatus from Docs d where d.creator_id = $1", userId)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +279,9 @@ func (p * PostgresStorage) GetAllDocs(userId model.Id) ([]model.Doc, error) {
 		text := ""
 		id := ""
 		access := 0
-		_ = res.Scan(&id, &text, &access)
+		lang := ""
+		lstatus := ""
+		_ = res.Scan(&id, &text, &access, &lang, &lstatus)
 
 		accessStr := accessIntToStr(access)
 		docs = append(docs, model.Doc {
@@ -277,6 +289,8 @@ func (p * PostgresStorage) GetAllDocs(userId model.Id) ([]model.Doc, error) {
 			AuthorId: userId,
 			Text: text,
 			Access: accessStr,
+			Lang: lang,
+			LinterStatus: lstatus,
 		})
 	}
 	return docs, nil

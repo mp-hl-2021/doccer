@@ -227,6 +227,8 @@ func (a *Api) editDoc(w http.ResponseWriter, r *http.Request) {
 		AuthorId: m.AuthorId,
 		Access: m.Access,
 		Text: m.Text,
+		Lang: m.Lang,
+		LinterStatus: "No inspection",
 	}
 	doc, err := a.useCases.EditDoc(model.Id(myId.(string)), m)
 	respJson, err := json.Marshal(doc)

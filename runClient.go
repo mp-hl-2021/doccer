@@ -22,7 +22,7 @@ func main() {
 
 	_ = client.AddMember(groupId, id2, jwt1)
 
-	docId, _ := client.CreateDoc("Jane Doe", "none", jwt1)
+	docId, _ := client.CreateDoc("Jane Doe", "Text", "none", jwt1)
 	println(docId)
 
 	_ = client.ChangeGroupAccess(docId, groupId, "absolute", jwt1)
@@ -35,5 +35,5 @@ func main() {
 	_ = client.ChangeMemberAccess(docId, id3, "read", jwt2)
 
 	doc, _ = client.GetDoc(docId, jwt3)
-	println(doc.Text)
+	println(doc.Text, doc.Lang, doc.LinterStatus)
 }

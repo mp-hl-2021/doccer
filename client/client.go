@@ -56,9 +56,10 @@ func (c* Client) Login(login string, password string) (string, error) {
 }
 
 // Returns docId
-func (c* Client) CreateDoc(text string, defaultAccess string, token string) (string, error) {
+func (c* Client) CreateDoc(text string, lang string, defaultAccess string, token string) (string, error) {
 	reqJson := bytes.NewBuffer([]byte(
-		fmt.Sprintf(`{"id":"-1", "authorId":"-1", "text":"%s", "access":"%s"}`, text, defaultAccess)))
+		fmt.Sprintf(`{"id":"-1", "authorId":"-1", "text":"%s", "access":"%s", "lang":"%s", "lstatus":"%s"}`,
+			text, defaultAccess, lang, "")))
 
 	req, _ := http.NewRequest("POST", c.url + "/docs", reqJson)
 
