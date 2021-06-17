@@ -2,6 +2,8 @@ package model
 
 import (
 	"doccer/auth"
+	"doccer/data"
+	"doccer/linter"
 	"github.com/dgrijalva/jwt-go"
 	"time"
 )
@@ -9,24 +11,67 @@ import (
 type ModelImpl struct {
 	storage Storage
 	jwtHandler auth.JwtHandler
+	processChannel chan data.Doc
+	resChannel chan data.Doc
 }
 
-func NewModelImpl(storage Storage, secret []byte) ModelImpl {
-	return ModelImpl{
+func NewModelImpl(
+	storage Storage,
+	secret []byte,
+	linter linter.GeneralLinter,
+    saveWorkersCnt int,
+	linterWorkersCnt int,
+	) ModelImpl {
+
+	processChannel := make(chan data.Doc)
+	resChannel := make(chan data.Doc)
+
+	res := ModelImpl{
 		storage: storage,
 		jwtHandler: auth.NewJwtHandler(secret, 24 * time.Hour),
+		processChannel: processChannel,
+		resChannel: resChannel,
 	}
+
+	for i := 0; i < saveWorkersCnt; i++ {
+		go func() {
+			for {
+				newDoc, ok := <-resChannel
+				if !ok {
+					break
+				}
+				_, err := res.editDoc(newDoc.AuthorId, newDoc, false)
+				if err != ErrNotFound {
+					_, _ = res.editDoc(newDoc.AuthorId, newDoc, false)
+				}
+			}
+		}()
+	}
+
+	for i := 0; i < linterWorkersCnt; i++ {
+		go func() {
+			for {
+				docToProcess, ok := <- processChannel
+				if !ok {
+					break
+				}
+				resChannel <- linter.CheckCode(docToProcess)
+			}
+		}()
+	}
+
+	return res
 }
 
-func (s *ModelImpl) nextId(isUserId bool) Id {
+func (s *ModelImpl) nextId(isUserId bool) data.Id {
 	if isUserId {
 		return s.storage.GenerateNewUserId()
 	}
 	return s.storage.GenerateNewDocId()
 }
 
-func (s *ModelImpl) Register(request LoginRequest) (*User, error) {
-	user := User{
+func (s *ModelImpl) Register(request LoginRequest) (*data.User, error) {
+	user := data.User{
 		Id:    s.nextId(true),
 		Login: request.Login,
 	}
@@ -88,8 +133,8 @@ func (s *ModelImpl) Logout(token Token) error {
 	return nil
 }
 
-func (s *ModelImpl) CreateDoc(userId Id, doc Doc) (*Doc, error) {
-	doc = Doc {
+func (s *ModelImpl) CreateDoc(userId data.Id, doc data.Doc) (*data.Doc, error) {
+	doc = data.Doc{
 		Id:       s.storage.GenerateNewDocId(),
 		AuthorId: userId,
 		Text:     doc.Text,
@@ -98,18 +143,20 @@ func (s *ModelImpl) CreateDoc(userId Id, doc Doc) (*Doc, error) {
 		LinterStatus: "No inspection",
 	}
 	docId, err := s.storage.AddDoc(doc)
+
 	if err != nil {
 		return nil, err
 	}
 	doc.Id = *docId
+	s.processChannel <- doc
 	return &doc, err
 }
 
-func (s *ModelImpl) GetDoc(userId Id, docId Id) (*Doc, error) {
+func (s *ModelImpl) GetDoc(userId data.Id, docId data.Id) (*data.Doc, error) {
 	return s.getDoc(userId, docId, true)
 }
 
-func (s *ModelImpl) getDoc(userId Id, docId Id, shouldCheck bool) (*Doc, error) {
+func (s *ModelImpl) getDoc(userId data.Id, docId data.Id, shouldCheck bool) (*data.Doc, error) {
 	var realAccess string = ""
 	if shouldCheck {
 		checkAccess, err := s.storage.CheckAccess(userId, docId)
@@ -129,7 +176,11 @@ func (s *ModelImpl) getDoc(userId Id, docId Id, shouldCheck bool) (*Doc, error) 
 	return res, nil
 }
 
-func (s *ModelImpl) EditDoc(userId Id, newDoc Doc) (*Doc, error) {
+func (s *ModelImpl) EditDoc(userId data.Id, newDoc data.Doc) (*data.Doc, error) {
+	return s.editDoc(userId, newDoc, true)
+}
+
+func (s *ModelImpl) editDoc(userId data.Id, newDoc data.Doc, updateLinter bool) (*data.Doc, error) {
 	checkAccess, err := s.storage.CheckAccess(userId, newDoc.Id)
 	if err != nil || checkAccess == "none" || checkAccess == "read" {
 		return nil, ErrNoAccess
@@ -142,10 +193,19 @@ func (s *ModelImpl) EditDoc(userId Id, newDoc Doc) (*Doc, error) {
 	if oldDoc.Access != newDoc.Access && checkAccess != "absolute" {
 		return nil, ErrNoAccess
 	}
-	return s.storage.EditDoc(newDoc)
+	res, err := s.storage.EditDoc(newDoc)
+	if err != nil {
+		return nil, err
+	}
+
+	if updateLinter {
+		s.processChannel <- *res
+	}
+
+	return res, nil
 }
 
-func (s *ModelImpl) DeleteDoc(userId Id, docId Id) error {
+func (s *ModelImpl) DeleteDoc(userId data.Id, docId data.Id) error {
 	checkAccess, err := s.storage.CheckAccess(userId, docId)
 	if err != nil || checkAccess != "absolute" {
 		return ErrNoAccess
@@ -153,7 +213,7 @@ func (s *ModelImpl) DeleteDoc(userId Id, docId Id) error {
 	return s.storage.DeleteDoc(docId)
 }
 
-func (s *ModelImpl) ChangeDocAccess(userId Id, request DocAccessRequest) (*Doc, error) {
+func (s *ModelImpl) ChangeDocAccess(userId data.Id, request DocAccessRequest) (*data.Doc, error) {
 	acc, err := s.storage.CheckAccess(userId, request.DocId)
 	if err != nil || acc != "absolute" {
 		return nil, ErrNoAccess
@@ -165,23 +225,23 @@ func (s *ModelImpl) ChangeDocAccess(userId Id, request DocAccessRequest) (*Doc, 
 	return s.getDoc(userId, request.DocId, false)
 }
 
-func (s *ModelImpl) GetAllDocs(userId Id) ([]Doc, error) {
+func (s *ModelImpl) GetAllDocs(userId data.Id) ([]data.Doc, error) {
 	return s.storage.GetAllDocs(userId)
 }
 
-func (s *ModelImpl) GetUserById(userId Id) (*User, error) {
+func (s *ModelImpl) GetUserById(userId data.Id) (*data.User, error) {
 	return s.storage.GetUser(userId)
 }
 
-func (s *ModelImpl) EditUser(userId Id, newUser User) (*User, error) {
+func (s *ModelImpl) EditUser(userId data.Id, newUser data.User) (*data.User, error) {
 	if userId != newUser.Id {
 		return nil, ErrNoAccess
 	}
 	return s.storage.EditUser(newUser)
 }
 
-func (s *ModelImpl) CreateGroup(userId Id, group Group) (*Group, error) {
-	group = Group{
+func (s *ModelImpl) CreateGroup(userId data.Id, group data.Group) (*data.Group, error) {
+	group = data.Group{
 		Id:      s.storage.GenerateNewGroupId(),
 		Name:    group.Name,
 		Creator: userId,
@@ -190,7 +250,7 @@ func (s *ModelImpl) CreateGroup(userId Id, group Group) (*Group, error) {
 	return s.storage.CreateGroup(group)
 }
 
-func (s *ModelImpl) DeleteGroup(userId Id, groupId Id) error {
+func (s *ModelImpl) DeleteGroup(userId data.Id, groupId data.Id) error {
 	g, err := s.storage.GetGroupById(groupId)
 	if err != nil {
 		return err
@@ -201,7 +261,7 @@ func (s *ModelImpl) DeleteGroup(userId Id, groupId Id) error {
 	return s.storage.DeleteGroup(groupId)
 }
 
-func (s *ModelImpl) EditGroup(userId Id, newGroup Group) (*Group, error) {
+func (s *ModelImpl) EditGroup(userId data.Id, newGroup data.Group) (*data.Group, error) {
 	oldGroup, err := s.storage.GetGroupById(newGroup.Id)
 	if err != nil || userId != oldGroup.Creator  {
 		return nil, ErrNoAccess
@@ -209,7 +269,7 @@ func (s *ModelImpl) EditGroup(userId Id, newGroup Group) (*Group, error) {
 	return s.storage.EditGroup(newGroup)
 }
 
-func (s *ModelImpl) AddMember(userId Id, groupId Id, newMemberId Id) error {
+func (s *ModelImpl) AddMember(userId data.Id, groupId data.Id, newMemberId data.Id) error {
 	group, err := s.storage.GetGroupById(groupId)
 	if err != nil {
 		return err
@@ -225,7 +285,7 @@ func (s *ModelImpl) AddMember(userId Id, groupId Id, newMemberId Id) error {
 	return s.storage.AddMember(groupId, newMemberId)
 }
 
-func (s *ModelImpl) RemoveMember(userId Id, groupId Id, memberId Id) error {
+func (s *ModelImpl) RemoveMember(userId data.Id, groupId data.Id, memberId data.Id) error {
 	group, err := s.storage.GetGroupById(groupId)
 	if err != nil {
 		return err
@@ -241,7 +301,7 @@ func (s *ModelImpl) RemoveMember(userId Id, groupId Id, memberId Id) error {
 	return s.storage.RemoveMember(groupId, memberId)
 }
 
-func (s *ModelImpl) GetMembers(userId Id, request GroupMembersChunkRequest) ([]User, error) {
+func (s *ModelImpl) GetMembers(userId data.Id, request GroupMembersChunkRequest) ([]data.User, error) {
 	g, err := s.storage.GetGroupById(request.Id)
 	if err != nil {
 		return nil, err

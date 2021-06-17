@@ -2,7 +2,7 @@ package client
 
 import (
 	"bytes"
-	"doccer/model"
+	"doccer/data"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -111,13 +111,13 @@ func (c* Client) ChangeGroupAccess(docId string, groupId string, newAccess strin
 	return nil
 }
 
-func (c* Client) GetDoc(docId string, token string) (*model.Doc, error) {
+func (c* Client) GetDoc(docId string, token string) (*data.Doc, error) {
 
 	req, _ := http.NewRequest("GET", c.url + fmt.Sprintf("/docs/%s", docId), nil)
 
 	resp, _ := c.makeAuthRequest(*req, token)
 
-	var res *model.Doc
+	var res *data.Doc
 	err := json.NewDecoder(resp.Body).Decode(&res)
 	if err != nil {
 		return nil, err

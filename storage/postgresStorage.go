@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"doccer/data"
 	"doccer/model"
 	_ "github.com/lib/pq"
 	"strconv"
@@ -21,7 +22,7 @@ func (p *PostgresStorage) ClearAllTables() {
 	_, _ = p.Dbc.Exec("insert into GeneralInfo values (0, 0, 0, 0)")
 }
 
-func (p *PostgresStorage) GenerateNewUserId() model.Id {
+func (p *PostgresStorage) GenerateNewUserId() data.Id {
 	p.mu1.Lock()
 	ctx := context.Background()
 	tx, _ := p.Dbc.BeginTx(ctx, nil)
@@ -38,10 +39,10 @@ func (p *PostgresStorage) GenerateNewUserId() model.Id {
 	_ = tx.Commit()
 
 	p.mu1.Unlock()
-	return model.Id(id)
+	return data.Id(id)
 }
 
-func (p *PostgresStorage) GenerateNewDocId() model.Id {
+func (p *PostgresStorage) GenerateNewDocId() data.Id {
 	p.mu2.Lock()
 	ctx := context.Background()
 	tx, _ := p.Dbc.BeginTx(ctx, nil)
@@ -58,10 +59,10 @@ func (p *PostgresStorage) GenerateNewDocId() model.Id {
 	_ = tx.Commit()
 
 	p.mu2.Unlock()
-	return model.Id(id)
+	return data.Id(id)
 }
 
-func (p *PostgresStorage) GenerateNewGroupId() model.Id {
+func (p *PostgresStorage) GenerateNewGroupId() data.Id {
 	p.mu3.Lock()
 	ctx := context.Background()
 	tx, _ := p.Dbc.BeginTx(ctx, nil)
@@ -78,10 +79,10 @@ func (p *PostgresStorage) GenerateNewGroupId() model.Id {
 	_ = tx.Commit()
 
 	p.mu3.Unlock()
-	return model.Id(id)
+	return data.Id(id)
 }
 
-func (p *PostgresStorage) AddUser(newUser model.User, password model.Password) error {
+func (p *PostgresStorage) AddUser(newUser data.User, password model.Password) error {
 	ctx := context.Background()
 	tx, err := p.Dbc.BeginTx(ctx, nil);
 	if err != nil {
@@ -106,7 +107,7 @@ func (p *PostgresStorage) AddUser(newUser model.User, password model.Password) e
 	return nil
 }
 
-func (p * PostgresStorage) GetUserByLogin(login string) (*model.User, error) {
+func (p * PostgresStorage) GetUserByLogin(login string) (*data.User, error) {
 	res := p.Dbc.QueryRow("select u.id from Users u where u.login = $1", login)
 	id := 0
 	err := res.Scan(&id)
@@ -114,14 +115,14 @@ func (p * PostgresStorage) GetUserByLogin(login string) (*model.User, error) {
 		return nil, model.ErrNotFound
 	}
 
-	user := model.User {
-		Id: model.Id(strconv.Itoa(id)),
+	user := data.User{
+		Id:    data.Id(strconv.Itoa(id)),
 		Login: login,
 	}
 	return &user, nil
 }
 
-func (p * PostgresStorage) GetUser(userId model.Id) (*model.User, error) {
+func (p * PostgresStorage) GetUser(userId data.Id) (*data.User, error) {
 	id, _ := strconv.Atoi(string(userId))
 	res := p.Dbc.QueryRow("select u.login from Users u where u.id = $1", id)
 	login := ""
@@ -130,7 +131,7 @@ func (p * PostgresStorage) GetUser(userId model.Id) (*model.User, error) {
 		return nil, model.ErrNotFound
 	}
 
-	user := model.User {
+	user := data.User{
 		Id: userId,
 		Login: login,
 	}
@@ -142,7 +143,7 @@ func (p * PostgresStorage) CheckLoginExists(login string) bool {
 	return err == nil
 }
 
-func (p * PostgresStorage) GetHashedPassword(userId model.Id) (*model.Password, error) {
+func (p * PostgresStorage) GetHashedPassword(userId data.Id) (*model.Password, error) {
 	res := p.Dbc.QueryRow("select p.password from Password p where p.id = $1", userId)
 	passwordStr := []byte("")
 	err := res.Scan(&passwordStr)
@@ -154,7 +155,7 @@ func (p * PostgresStorage) GetHashedPassword(userId model.Id) (*model.Password, 
 }
 
 
-func (p * PostgresStorage) EditUser(newUser model.User) (*model.User, error) {
+func (p * PostgresStorage) EditUser(newUser data.User) (*data.User, error) {
 	_, err := p.Dbc.Exec("update Users u set u.login = $1 where u.id = $2", newUser.Id, newUser.Login)
 	if err != nil {
 		return nil, model.ErrNotFound
@@ -162,7 +163,7 @@ func (p * PostgresStorage) EditUser(newUser model.User) (*model.User, error) {
 	return &newUser, nil
 }
 
-func (p * PostgresStorage) CheckAccess(userId model.Id, docId model.Id) (string, error) {
+func (p * PostgresStorage) CheckAccess(userId data.Id, docId data.Id) (string, error) {
 	doc, err := p.GetDoc(docId)
 	if err != nil {
 		return "none", err
@@ -192,7 +193,7 @@ func (p * PostgresStorage) CheckAccess(userId model.Id, docId model.Id) (string,
 			err = res2.Scan(&groupId, &naccess)
 			if err == nil {
 				members, err := p.GetMembers(model.GroupMembersChunkRequest{
-					Id:    model.Id(groupId),
+					Id:    data.Id(groupId),
 					Begin: 0,
 					Size:  0,
 				})
@@ -216,7 +217,7 @@ func (p * PostgresStorage) CheckAccess(userId model.Id, docId model.Id) (string,
 	return doc.Access, nil
 }
 
-func (p *PostgresStorage) GetDoc(docId model.Id) (*model.Doc, error) {
+func (p *PostgresStorage) GetDoc(docId data.Id) (*data.Doc, error) {
 	res := p.Dbc.QueryRow("select d.text, d.creator_id, d.public_access_type, d.lang, d.lstatus from Docs d where d.id = $1", docId)
 	text := ""
 	creatorId := ""
@@ -227,17 +228,17 @@ func (p *PostgresStorage) GetDoc(docId model.Id) (*model.Doc, error) {
 	if err != nil {
 		return nil, model.ErrNotFound
 	}
-	return &model.Doc{
-		Id: docId,
-		AuthorId: model.Id(creatorId),
-		Text: text,
-		Access: accessIntToStr(pubAccess),
-		Lang: lang,
+	return &data.Doc{
+		Id:           docId,
+		AuthorId:     data.Id(creatorId),
+		Text:         text,
+		Access:       accessIntToStr(pubAccess),
+		Lang:         lang,
 		LinterStatus: lstatus,
 	}, nil
 }
 
-func (p * PostgresStorage) AddDoc(doc model.Doc) (*model.Id, error) {
+func (p * PostgresStorage) AddDoc(doc data.Doc) (*data.Id, error) {
 	_, err := p.Dbc.Exec("insert into Docs values ($1, $2, $3, $4, $5, $6)",
 		doc.Id, doc.AuthorId, doc.Text, accessStrToInt(doc.Access), doc.Lang, doc.LinterStatus)
 	if err != nil {
@@ -246,14 +247,14 @@ func (p * PostgresStorage) AddDoc(doc model.Doc) (*model.Id, error) {
 	return &doc.Id, nil
 }
 
-func (p * PostgresStorage) EditDoc(newDoc model.Doc) (*model.Doc, error) {
+func (p * PostgresStorage) EditDoc(newDoc data.Doc) (*data.Doc, error) {
 	publicAccType := accessStrToInt(newDoc.Access)
 	_, _ = p.Dbc.Exec("update Docs set text = $1, public_access_type = $2, lang = $3, lstatus = $4",
 		newDoc.Text, publicAccType, newDoc.Lang, newDoc.LinterStatus)
 	return &newDoc, nil
 }
 
-func (p * PostgresStorage) EditDocAccess(docId model.Id, editRequest model.DocAccessRequest) error {
+func (p * PostgresStorage) EditDocAccess(docId data.Id, editRequest model.DocAccessRequest) error {
 	if editRequest.Type == 0 {
 		_, err := p.Dbc.Exec("insert into DocMemberRestriction values ($1, $2, $3) on conflict(doc_id, member_id) do update set type = excluded.type;", docId, editRequest.ItemId, accessStrToInt(editRequest.Access))
 		if err != nil {
@@ -268,12 +269,12 @@ func (p * PostgresStorage) EditDocAccess(docId model.Id, editRequest model.DocAc
 	return nil
 }
 
-func (p * PostgresStorage) GetAllDocs(userId model.Id) ([]model.Doc, error) {
+func (p * PostgresStorage) GetAllDocs(userId data.Id) ([]data.Doc, error) {
 	res, err := p.Dbc.Query("select d.id, d.text, d.access, d.lang, d.lstatus from Docs d where d.creator_id = $1", userId)
 	if err != nil {
 		return nil, err
 	}
-	var docs []model.Doc
+	var docs []data.Doc
 
 	for res.Next() {
 		text := ""
@@ -284,19 +285,19 @@ func (p * PostgresStorage) GetAllDocs(userId model.Id) ([]model.Doc, error) {
 		_ = res.Scan(&id, &text, &access, &lang, &lstatus)
 
 		accessStr := accessIntToStr(access)
-		docs = append(docs, model.Doc {
-			Id: model.Id(id),
-			AuthorId: userId,
-			Text: text,
-			Access: accessStr,
-			Lang: lang,
+		docs = append(docs, data.Doc{
+			Id:           data.Id(id),
+			AuthorId:     userId,
+			Text:         text,
+			Access:       accessStr,
+			Lang:         lang,
 			LinterStatus: lstatus,
 		})
 	}
 	return docs, nil
 }
 
-func (p * PostgresStorage) DeleteDoc(docId model.Id) error {
+func (p * PostgresStorage) DeleteDoc(docId data.Id) error {
 	_, err := p.Dbc.Exec("delete from Docs d where d.id = $1", docId)
 	if err != nil {
 		return model.ErrNotFound
@@ -304,7 +305,7 @@ func (p * PostgresStorage) DeleteDoc(docId model.Id) error {
 	return nil
 }
 
-func (p * PostgresStorage) CreateGroup(group model.Group) (*model.Group, error) {
+func (p * PostgresStorage) CreateGroup(group data.Group) (*data.Group, error) {
 	_, err := p.Dbc.Exec("insert into Groups1 values ($1, $2, $3)", group.Id, group.Creator, group.Name)
 	if err != nil {
 		return nil, err
@@ -312,7 +313,7 @@ func (p * PostgresStorage) CreateGroup(group model.Group) (*model.Group, error) 
 	return &group, nil
 }
 
-func (p * PostgresStorage) DeleteGroup(groupId model.Id) error {
+func (p * PostgresStorage) DeleteGroup(groupId data.Id) error {
 	_, err := p.Dbc.Exec("delete from Groups1 g where g.id = $1", groupId)
 	if err != nil {
 		return model.ErrNotFound
@@ -320,7 +321,7 @@ func (p * PostgresStorage) DeleteGroup(groupId model.Id) error {
 	return nil
 }
 
-func (p * PostgresStorage) EditGroup(newGroup model.Group) (*model.Group, error) {
+func (p * PostgresStorage) EditGroup(newGroup data.Group) (*data.Group, error) {
 	_, err := p.Dbc.Exec("update Groups1 set name = $1 where id = $2", newGroup.Name, newGroup.Id)
 	if err != nil {
 		return nil, err
@@ -328,7 +329,7 @@ func (p * PostgresStorage) EditGroup(newGroup model.Group) (*model.Group, error)
 	return &newGroup, nil
 }
 
-func (p * PostgresStorage) GetGroupById(groupId model.Id) (*model.Group, error) {
+func (p * PostgresStorage) GetGroupById(groupId data.Id) (*data.Group, error) {
 	res := p.Dbc.QueryRow("select g.name, g.creator_id from Groups1 g where g.id = $1", groupId)
 	name := ""
 	creatorId := ""
@@ -338,15 +339,15 @@ func (p * PostgresStorage) GetGroupById(groupId model.Id) (*model.Group, error) 
 		return nil, model.ErrNotFound
 	}
 
-	group := model.Group{
+	group := data.Group{
 		Id:      groupId,
 		Name:    name,
-		Creator: model.Id(creatorId),
+		Creator: data.Id(creatorId),
 	}
 	return &group, nil
 }
 
-func (p * PostgresStorage) AddMember(groupId model.Id, newMemberId model.Id) error {
+func (p * PostgresStorage) AddMember(groupId data.Id, newMemberId data.Id) error {
 	_, err := p.Dbc.Exec("insert into GroupMember values ($1, $2)", groupId, newMemberId)
 	if err != nil {
 		return model.ErrAlreadyExists
@@ -355,7 +356,7 @@ func (p * PostgresStorage) AddMember(groupId model.Id, newMemberId model.Id) err
 	return nil
 }
 
-func (p * PostgresStorage) RemoveMember(groupId model.Id, memberId model.Id) error {
+func (p * PostgresStorage) RemoveMember(groupId data.Id, memberId data.Id) error {
 	_, err := p.Dbc.Exec("delete from GroupMember g where g.group_id = $1 and g.member_id = $2", groupId, memberId)
 	if err != nil {
 		return model.ErrNotFound
@@ -364,17 +365,17 @@ func (p * PostgresStorage) RemoveMember(groupId model.Id, memberId model.Id) err
 	return nil
 }
 
-func (p * PostgresStorage) GetMembers(request model.GroupMembersChunkRequest) ([]model.User, error) {
+func (p * PostgresStorage) GetMembers(request model.GroupMembersChunkRequest) ([]data.User, error) {
 	res, err := p.Dbc.Query("select g.member_id from GroupMember g where g.group_id = $1", request.Id)
 	if err != nil {
 		return nil, err
 	}
-	var users []model.User
+	var users []data.User
 
 	for res.Next() {
 		user_id := ""
 		_ = res.Scan(&user_id)
-		user, _ := p.GetUser(model.Id(user_id))
+		user, _ := p.GetUser(data.Id(user_id))
 		users = append(users, *user)
 	}
 	return users, nil

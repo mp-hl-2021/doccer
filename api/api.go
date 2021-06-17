@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"doccer/data"
 	"doccer/model"
 	"encoding/json"
 	mux "github.com/gorilla/mux"
@@ -129,10 +130,10 @@ func (a *Api) logout(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) getDoc(w http.ResponseWriter, r *http.Request) {
 	myId := r.Context().Value("myUserId")
-	id := model.Id(mux.Vars(r)["doc_id"])
-	var newDoc *model.Doc
+	id := data.Id(mux.Vars(r)["doc_id"])
+	var newDoc *data.Doc
 	if myId != nil {
-		doc, err := a.useCases.GetDoc(model.Id(myId.(string)), id)
+		doc, err := a.useCases.GetDoc(data.Id(myId.(string)), id)
 		newDoc = doc
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -162,14 +163,14 @@ func (a *Api) getDoc(w http.ResponseWriter, r *http.Request) {
 
 func (a *Api) createDoc(w http.ResponseWriter, r *http.Request) {
 	myId := r.Context().Value("myUserId")
-	var m model.Doc
-	var newDoc *model.Doc
+	var m data.Doc
+	var newDoc *data.Doc
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	if myId != nil {
-		doc, err := a.useCases.CreateDoc(model.Id(myId.(string)), m)
+		doc, err := a.useCases.CreateDoc(data.Id(myId.(string)), m)
 		newDoc = doc
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -198,12 +199,12 @@ func (a *Api) createDoc(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) deleteDoc(w http.ResponseWriter, r *http.Request) {
-	id := model.Id(mux.Vars(r)["id"])
+	id := data.Id(mux.Vars(r)["id"])
 	myId := r.Context().Value("myUserId")
 	if myId == nil {
 		return
 	}
-	err := a.useCases.DeleteDoc(model.Id(myId.(string)), id)
+	err := a.useCases.DeleteDoc(data.Id(myId.(string)), id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -217,20 +218,20 @@ func (a *Api) editDoc(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	var m model.Doc
+	var m data.Doc
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	m = model.Doc{
-		Id: model.Id(id),
-		AuthorId: m.AuthorId,
-		Access: m.Access,
-		Text: m.Text,
-		Lang: m.Lang,
+	m = data.Doc{
+		Id:           data.Id(id),
+		AuthorId:     m.AuthorId,
+		Access:       m.Access,
+		Text:         m.Text,
+		Lang:         m.Lang,
 		LinterStatus: "No inspection",
 	}
-	doc, err := a.useCases.EditDoc(model.Id(myId.(string)), m)
+	doc, err := a.useCases.EditDoc(data.Id(myId.(string)), m)
 	respJson, err := json.Marshal(doc)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -255,7 +256,7 @@ func (a *Api) changeDocAccess(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	doc, err := a.useCases.ChangeDocAccess(model.Id(myId.(string)), m)
+	doc, err := a.useCases.ChangeDocAccess(data.Id(myId.(string)), m)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -279,7 +280,7 @@ func (a *Api) getAllDocs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docs, err := a.useCases.GetAllDocs(model.Id(myId.(string)))
+	docs, err := a.useCases.GetAllDocs(data.Id(myId.(string)))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -302,7 +303,7 @@ func (a *Api) getUser(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	user, err := a.useCases.GetUserById(model.Id(myId.(string)))
+	user, err := a.useCases.GetUserById(data.Id(myId.(string)))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -325,16 +326,16 @@ func (a *Api) editUser(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	var m model.User
+	var m data.User
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	m = model.User{
-		Id: model.Id(myId.(string)),
+	m = data.User{
+		Id:    data.Id(myId.(string)),
 		Login: m.Login,
 	}
-	user, err := a.useCases.EditUser(model.Id(myId.(string)), m)
+	user, err := a.useCases.EditUser(data.Id(myId.(string)), m)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -357,12 +358,12 @@ func (a *Api) createGroup(w http.ResponseWriter, r *http.Request) {
 	if myId == nil {
 		return
 	}
-	var m model.Group
+	var m data.Group
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	group, err := a.useCases.CreateGroup(model.Id(myId.(string)), m)
+	group, err := a.useCases.CreateGroup(data.Id(myId.(string)), m)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -387,17 +388,17 @@ func (a *Api) editGroup(w http.ResponseWriter, r *http.Request) {
 	}
 	id := mux.Vars(r)["id"]
 
-	var m model.Group
+	var m data.Group
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	m = model.Group{
-		Id: model.Id(id),
-		Name: m.Name,
+	m = data.Group{
+		Id:      data.Id(id),
+		Name:    m.Name,
 		Creator: m.Creator,
 	}
-	group, err := a.useCases.EditGroup(model.Id(myId.(string)), m)
+	group, err := a.useCases.EditGroup(data.Id(myId.(string)), m)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -421,7 +422,7 @@ func (a *Api) deleteGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := mux.Vars(r)["id"]
-	err := a.useCases.DeleteGroup(model.Id(myId.(string)), model.Id(id))
+	err := a.useCases.DeleteGroup(data.Id(myId.(string)), data.Id(id))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -439,7 +440,7 @@ func (a *Api) removeMember(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	err := a.useCases.RemoveMember(model.Id(myId.(string)), m.GroupId, m.MemberId)
+	err := a.useCases.RemoveMember(data.Id(myId.(string)), m.GroupId, m.MemberId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -457,7 +458,7 @@ func (a *Api) addMember(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	err := a.useCases.AddMember(model.Id(myId.(string)), m.GroupId, m.MemberId)
+	err := a.useCases.AddMember(data.Id(myId.(string)), m.GroupId, m.MemberId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -475,7 +476,7 @@ func (a *Api) getMembers(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	members, err := a.useCases.GetMembers(model.Id(myId.(string)), m)
+	members, err := a.useCases.GetMembers(data.Id(myId.(string)), m)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

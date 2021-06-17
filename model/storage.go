@@ -1,31 +1,33 @@
 package model
 
+import "doccer/data"
+
 type Storage interface {
-	GetUser(userId Id) (*User, error)
-	GetUserByLogin(login string) (*User, error)
-	GetHashedPassword(userId Id) (*Password, error)
-    AddUser(newUser User, password Password) error
-	EditUser(newUser User) (*User, error)
+	GetUser(userId data.Id) (*data.User, error)
+	GetUserByLogin(login string) (*data.User, error)
+	GetHashedPassword(userId data.Id) (*Password, error)
+    AddUser(newUser data.User, password Password) error
+	EditUser(newUser data.User) (*data.User, error)
 	CheckLoginExists(login string) bool
 
-	CheckAccess(userId Id, docId Id) (string, error)
-	GetDoc(docId Id) (*Doc, error)
-	AddDoc(newDoc Doc) (*Id, error)
-	EditDoc(newDoc Doc) (*Doc, error)
-	EditDocAccess(docId Id, request DocAccessRequest) error
-	DeleteDoc(docId Id) error
-	GetAllDocs(userId Id) ([]Doc, error)
+	CheckAccess(userId data.Id, docId data.Id) (string, error)
+	GetDoc(docId data.Id) (*data.Doc, error)
+	AddDoc(newDoc data.Doc) (*data.Id, error)
+	EditDoc(newDoc data.Doc) (*data.Doc, error)
+	EditDocAccess(docId data.Id, request DocAccessRequest) error
+	DeleteDoc(docId data.Id) error
+	GetAllDocs(userId data.Id) ([]data.Doc, error)
 
-	CreateGroup(group Group) (*Group, error)
-	DeleteGroup(groupId Id) error
-	EditGroup(newGroup Group) (*Group, error)
-	GetGroupById(groupId Id) (*Group, error)
+	CreateGroup(group data.Group) (*data.Group, error)
+	DeleteGroup(groupId data.Id) error
+	EditGroup(newGroup data.Group) (*data.Group, error)
+	GetGroupById(groupId data.Id) (*data.Group, error)
 
-	AddMember(groupId Id, newMemberId Id) error
-	RemoveMember(groupId Id, memberId Id) error
-	GetMembers(request GroupMembersChunkRequest) ([]User, error)
+	AddMember(groupId data.Id, newMemberId data.Id) error
+	RemoveMember(groupId data.Id, memberId data.Id) error
+	GetMembers(request GroupMembersChunkRequest) ([]data.User, error)
 
-	GenerateNewUserId() Id
-	GenerateNewDocId() Id
-	GenerateNewGroupId() Id
+	GenerateNewUserId() data.Id
+	GenerateNewDocId() data.Id
+	GenerateNewGroupId() data.Id
 }
