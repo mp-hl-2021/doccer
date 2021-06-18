@@ -4,9 +4,15 @@ import (
 	"context"
 	"doccer/data"
 	"doccer/model"
+	"doccer/prom"
 	"encoding/json"
 	mux "github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+)
+
+const (
+	accountIdContextKey = "account_id"
 )
 
 type Api struct {
@@ -20,6 +26,10 @@ func NewApi(x model.UseCasesInterface) *Api {
 
 func (a *Api) Router() http.Handler {
 	router := mux.NewRouter()
+
+	router.Use(prom.Measurer())
+	router.Use(a.logger)
+
 	router.HandleFunc("/register", a.register).Methods(http.MethodPost)
 	router.HandleFunc("/login", a.login).Methods(http.MethodPost)
 	router.HandleFunc("/logout", a.auth(a.logout, true)).Methods(http.MethodPost)
@@ -45,6 +55,8 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/users/groups/{group_id}/members", a.auth(a.getMembers, true)).Methods(http.MethodGet)
 	router.HandleFunc("/users/groups/{group_id}/members", a.auth(a.removeMember, true)).Methods(http.MethodDelete)
 	router.HandleFunc("/users/groups/{group_id}/members", a.auth(a.addMember, true)).Methods(http.MethodPut)
+
+	router.Handle("/metrics", promhttp.Handler())
 
 	return router
 }
