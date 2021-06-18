@@ -7,6 +7,7 @@ import (
 	"doccer/prom"
 	"encoding/json"
 	mux "github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 )
 
@@ -54,6 +55,8 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/users/groups/{group_id}/members", a.auth(a.getMembers, true)).Methods(http.MethodGet)
 	router.HandleFunc("/users/groups/{group_id}/members", a.auth(a.removeMember, true)).Methods(http.MethodDelete)
 	router.HandleFunc("/users/groups/{group_id}/members", a.auth(a.addMember, true)).Methods(http.MethodPut)
+
+	router.Handle("/metrics", promhttp.Handler())
 
 	return router
 }
