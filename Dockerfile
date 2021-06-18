@@ -5,8 +5,9 @@ WORKDIR /build
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o doccer-server main.go
 
 
-FROM alpine:3.13
+FROM golang:1.16.2-alpine3.13
 COPY --from=builder /build/doccer-server .
+RUN go install honnef.co/go/tools/cmd/staticcheck@latest
 
 # executable
 ENTRYPOINT [ "./doccer-server" ]
