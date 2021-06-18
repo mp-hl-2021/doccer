@@ -2,7 +2,7 @@ package client
 
 import (
 	"bytes"
-	"doccer/model"
+	"doccer/data"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -56,9 +56,10 @@ func (c* Client) Login(login string, password string) (string, error) {
 }
 
 // Returns docId
-func (c* Client) CreateDoc(text string, defaultAccess string, token string) (string, error) {
+func (c* Client) CreateDoc(text string, lang string, defaultAccess string, token string) (string, error) {
 	reqJson := bytes.NewBuffer([]byte(
-		fmt.Sprintf(`{"id":"-1", "authorId":"-1", "text":"%s", "access":"%s"}`, text, defaultAccess)))
+		fmt.Sprintf(`{"id":"-1", "authorId":"-1", "text":%s, "access":"%s", "lang":"%s", "lstatus":"%s"}`,
+			c.escapeJson(text), defaultAccess, lang, "")))
 
 	req, _ := http.NewRequest("POST", c.url + "/docs", reqJson)
 
@@ -110,13 +111,13 @@ func (c* Client) ChangeGroupAccess(docId string, groupId string, newAccess strin
 	return nil
 }
 
-func (c* Client) GetDoc(docId string, token string) (*model.Doc, error) {
+func (c* Client) GetDoc(docId string, token string) (*data.Doc, error) {
 
 	req, _ := http.NewRequest("GET", c.url + fmt.Sprintf("/docs/%s", docId), nil)
 
 	resp, _ := c.makeAuthRequest(*req, token)
 
-	var res *model.Doc
+	var res *data.Doc
 	err := json.NewDecoder(resp.Body).Decode(&res)
 	if err != nil {
 		return nil, err
@@ -135,4 +136,9 @@ func (c* Client) parseField(responseBody []byte, fieldName string) (string, erro
 	var result map[string]interface{}
 	_ = json.Unmarshal([]byte(bodyStr), &result)
 	return result[fieldName].(string), nil
+}
+
+func (c* Client) escapeJson(jsonString string) string {
+	res, _ := json.Marshal(jsonString)
+	return string(res)
 }

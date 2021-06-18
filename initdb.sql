@@ -23,6 +23,8 @@ create table Docs(
     creator_id int,
     text text,
     public_access_type int,
+    lang text,
+    lstatus text,
     constraint fr_creator_id foreign key(creator_id) references Users(id)
 );
 
