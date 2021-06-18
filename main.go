@@ -13,8 +13,8 @@ import (
 )
 
 func main() {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		"postgres", "qwerty", "postgres")
+	dbinfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		"db", "5432", "postgres", "qwerty", "postgres")
 	db, err := sql.Open("postgres", dbinfo)
 	if err != nil {
 		panic(err)
@@ -23,7 +23,7 @@ func main() {
 		Dbc: db,
 	}
 	//delete all data
-	//storage.ClearAllTables()
+	storage.ClearAllTables()
 
 	linter := linter2.NewGeneralLinter()
 
@@ -35,7 +35,7 @@ func main() {
 	service := api.NewApi(&m)
 
 	server := http.Server {
-		Addr:         "localhost:8080",
+		Addr:         ":8080",
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		Handler:      service.Router(),
