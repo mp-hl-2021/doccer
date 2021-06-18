@@ -51,7 +51,7 @@ func main() {
 }
 `
 	codeId, _ := client.CreateDoc(code, "go", "read", jwt2)
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	doc, _ = client.GetDoc(codeId, jwt1)
 	println(doc.Text)
 	println("Lang: ", doc.Lang)

@@ -40,10 +40,7 @@ func NewModelImpl(
 				if !ok {
 					break
 				}
-				_, err := res.editDoc(newDoc.AuthorId, newDoc, false)
-				if err != ErrNotFound {
-					_, _ = res.editDoc(newDoc.AuthorId, newDoc, false)
-				}
+				_, _ = res.editDoc(newDoc.AuthorId, newDoc, false)
 			}
 		}()
 	}
@@ -178,6 +175,19 @@ func (s *ModelImpl) getDoc(userId data.Id, docId data.Id, shouldCheck bool) (*da
 
 func (s *ModelImpl) EditDoc(userId data.Id, newDoc data.Doc) (*data.Doc, error) {
 	return s.editDoc(userId, newDoc, true)
+}
+
+func (s *ModelImpl) LaunchLinter(userId data.Id, docId data.Id) error {
+	doc, err := s.getDoc(userId, docId, true)
+	if err != nil {
+		return err
+	}
+	access := doc.Access
+	if access != "edit" && access != "absolute" {
+		return ErrNoAccess
+	}
+	s.processChannel <- *doc
+	return nil
 }
 
 func (s *ModelImpl) editDoc(userId data.Id, newDoc data.Doc, updateLinter bool) (*data.Doc, error) {

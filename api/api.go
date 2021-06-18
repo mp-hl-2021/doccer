@@ -31,6 +31,8 @@ func (a *Api) Router() http.Handler {
 
 	router.HandleFunc("/docs/{doc_id}/access", a.auth(a.changeDocAccess, true)).Methods(http.MethodPost)
 
+	router.HandleFunc("/docs/{doc_id}/linter", a.auth(a.launchLinter, true)).Methods(http.MethodGet)
+
 	router.HandleFunc("/docs", a.auth(a.getAllDocs, true)).Methods(http.MethodGet)
 
 	router.HandleFunc("/users", a.auth(a.editUser, true)).Methods(http.MethodPut)
@@ -243,6 +245,22 @@ func (a *Api) editDoc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	println("Edit doc request with id", id, "by user", myId)
+}
+
+func (a *Api) launchLinter(w http.ResponseWriter, r *http.Request) {
+	doc_id := mux.Vars(r)["id"]
+	myId := r.Context().Value("myUserId")
+	if myId == nil {
+		return
+	}
+	err := a.useCases.LaunchLinter(data.Id(myId.(string)), data.Id(doc_id))
+	if err != nil {
+		if err != model.ErrNoAccess {
+			w.WriteHeader(http.StatusForbidden)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}
 }
 
 func (a *Api) changeDocAccess(w http.ResponseWriter, r *http.Request) {

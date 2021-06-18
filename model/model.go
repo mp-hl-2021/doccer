@@ -13,6 +13,7 @@ type UseCasesInterface interface {
 	EditDoc(userId data.Id, newDoc data.Doc) (*data.Doc, error)
 	DeleteDoc(userId data.Id, docId data.Id) error
 	ChangeDocAccess(userId data.Id, request DocAccessRequest) (*data.Doc, error)
+	LaunchLinter(userId data.Id, docId data.Id) error
 
 	GetAllDocs(userId data.Id) ([]data.Doc, error)
 
